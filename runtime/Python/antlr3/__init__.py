@@ -144,9 +144,9 @@ __version__ = '3.4'
 # API versions. 'HEAD' is only used by unittests.
 compatible_api_versions = ['HEAD', 1]
 
-from constants import *
-from dfa import *
-from exceptions import *
-from recognizers import *
-from streams import *
-from tokens import *
+from antlr3.constants import *
+from antlr3.dfa import *
+from antlr3.exceptions import *
+from antlr3.recognizers import *
+from antlr3.streams import *
+from antlr3.tokens import *

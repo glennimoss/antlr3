@@ -38,7 +38,7 @@ This module contains all support classes for AST construction and tree parsers.
 # lot's of docstrings are missing, don't complain for now...
 # pylint: disable-msg=C0111
 
-from treewizard import TreeWizard
+from antlr3.treewizard import TreeWizard
 
 try:
     from antlr3.dottreegen import toDOT

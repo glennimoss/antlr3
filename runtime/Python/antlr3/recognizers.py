@@ -1097,7 +1097,7 @@ class Lexer(BaseRecognizer, TokenSource):
         stream.
         """
 
-        while 1:
+        while True:
             self._state.token = None
             self._state.channel = DEFAULT_CHANNEL
             self._state.tokenStartCharIndex = self.input.index()
