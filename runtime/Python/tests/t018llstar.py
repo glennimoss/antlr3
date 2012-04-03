@@ -3,7 +3,7 @@ import testbase
 import unittest
 import os
 import sys
-from cStringIO import StringIO
+from io import StringIO
 import difflib
 
 class t018llstar(testbase.ANTLRTest):

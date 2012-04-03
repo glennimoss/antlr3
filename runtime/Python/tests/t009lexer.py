@@ -53,9 +53,9 @@ class t009lexer(testbase.ANTLRTest):
         lexer.nextToken()
         try:
             token = lexer.nextToken()
-            raise AssertionError, token
+            raise AssertionError(token)
 
-        except antlr3.MismatchedSetException, exc:
+        except antlr3.MismatchedSetException as exc:
             # TODO: This should provide more useful information
             assert exc.expecting is None
             assert exc.unexpectedType == 'a', repr(exc.unexpectedType)

@@ -30,7 +30,7 @@ class t042ast(testbase.ANTLRTest):
         tStream = antlr3.CommonTokenStream(self.lexer)
         self.parser = self.getParser(tStream)
         
-        for attr, val in kwargs.items():
+        for attr, val in list(kwargs.items()):
             setattr(self.parser, attr, val)
             
         return getattr(self.parser, method)(*rArgs)

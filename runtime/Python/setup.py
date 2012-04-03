@@ -1,14 +1,10 @@
-# bootstrapping setuptools
-import ez_setup
-ez_setup.use_setuptools()
-
 import os
 import sys
 import textwrap
 from distutils.errors import *
 from distutils.command.clean import clean as _clean
 from distutils.cmd import Command
-from setuptools import setup
+#from setuptools import setup
 from distutils import log
 
 from distutils.core import setup
@@ -46,7 +42,7 @@ class clean(_clean):
                         try:
                             log.info("removing '%s'", filePath)
                             os.unlink(filePath)
-                        except OSError, exc:
+                        except OSError as exc:
                             log.warn(
                                 "Failed to delete '%s': %s",
                                 filePath, exc
@@ -91,7 +87,7 @@ class unittest(Command):
         import imp
         import unittest
         import traceback
-        import StringIO
+        import io
 
         suite = unittest.TestSuite()
         loadFailures = []
@@ -118,7 +114,7 @@ class unittest(Command):
                     )
 
             except Exception:
-                buf = StringIO.StringIO()
+                buf = io.StringIO()
                 traceback.print_exc(file=buf)
 
                 loadFailures.append(
@@ -179,7 +175,7 @@ class functest(Command):
         import imp
         import unittest
         import traceback
-        import StringIO
+        import io
 
         testDir = os.path.join(os.path.dirname(__file__), 'tests')
         if not os.path.isdir(testDir):
@@ -250,7 +246,7 @@ class functest(Command):
                     unittest.defaultTestLoader.loadTestsFromModule(testMod))
 
             except Exception:
-                buf = StringIO.StringIO()
+                buf = io.StringIO()
                 traceback.print_exc(file=buf)
 
                 loadFailures.append(

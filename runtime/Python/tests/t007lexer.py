@@ -46,9 +46,9 @@ class t007lexer(testbase.ANTLRTest):
 
         try:
             token = lexer.nextToken()
-            raise AssertionError, token
+            raise AssertionError(token)
 
-        except antlr3.EarlyExitException, exc:
+        except antlr3.EarlyExitException as exc:
             assert exc.unexpectedType == 'o', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 6, repr(exc.charPositionInLine)
             assert exc.line == 1, repr(exc.line)

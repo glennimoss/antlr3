@@ -3,7 +3,7 @@ import testbase
 import unittest
 import os
 import sys
-from cStringIO import StringIO
+from io import StringIO
 import difflib
 import textwrap
 
@@ -27,7 +27,7 @@ class t012lexerXML(testbase.ANTLRTest):
         
     def testValid(self):
         inputPath = os.path.splitext(__file__)[0] + '.input'
-        stream = antlr3.StringStream(unicode(open(inputPath).read(), 'utf-8'))
+        stream = antlr3.StringStream(str(open(inputPath).read(), 'utf-8'))
         lexer = self.getLexer(stream)
 
         while True:
@@ -36,10 +36,10 @@ class t012lexerXML(testbase.ANTLRTest):
                 break
 
 
-        output = unicode(lexer.outbuf.getvalue(), 'utf-8')
+        output = str(lexer.outbuf.getvalue(), 'utf-8')
 
         outputPath = os.path.splitext(__file__)[0] + '.output'
-        testOutput = unicode(open(outputPath).read(), 'utf-8')
+        testOutput = str(open(outputPath).read(), 'utf-8')
 
         success = (output == testOutput)
         if not success:
@@ -68,7 +68,7 @@ class t012lexerXML(testbase.ANTLRTest):
 
             raise AssertionError
 
-        except antlr3.NoViableAltException, exc:
+        except antlr3.NoViableAltException as exc:
             assert exc.unexpectedType == '>', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 11, repr(exc.charPositionInLine)
             assert exc.line == 2, repr(exc.line)
@@ -92,7 +92,7 @@ class t012lexerXML(testbase.ANTLRTest):
 
             raise AssertionError
 
-        except antlr3.MismatchedSetException, exc:
+        except antlr3.MismatchedSetException as exc:
             assert exc.unexpectedType == 't', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 2, repr(exc.charPositionInLine)
             assert exc.line == 1, repr(exc.line)
@@ -116,7 +116,7 @@ class t012lexerXML(testbase.ANTLRTest):
 
             raise AssertionError
 
-        except antlr3.NoViableAltException, exc:
+        except antlr3.NoViableAltException as exc:
             assert exc.unexpectedType == 'a', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 11, repr(exc.charPositionInLine)
             assert exc.line == 2, repr(exc.line)

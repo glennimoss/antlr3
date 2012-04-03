@@ -6,7 +6,7 @@ import stringtemplate3
 import testbase
 import sys
 import os
-from StringIO import StringIO
+from io import StringIO
 
 class T(testbase.ANTLRTest):
     def execParser(self, grammar, grammarEntry, input, group=None):

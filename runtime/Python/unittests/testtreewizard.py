@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from StringIO import StringIO
+from io import StringIO
 
 from antlr3.tree import CommonTreeAdaptor, CommonTree, INVALID_TOKEN_TYPE
 from antlr3.treewizard import TreeWizard, computeTokenTypes, \

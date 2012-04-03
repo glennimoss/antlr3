@@ -50,7 +50,8 @@ class _Main(object):
             "--encoding",
             action="store",
             type="string",
-            dest="encoding"
+            dest="encoding",
+            default="UTF-8"
             )
         optParser.add_option(
             "--input",
@@ -108,12 +109,12 @@ class _Main(object):
         if options.interactive:
             while True:
                 try:
-                    input = raw_input(">>> ")
+                    user_input = input(">>> ")
                 except (EOFError, KeyboardInterrupt):
                     self.stdout.write("\nBye.\n")
                     break
 
-                inStream = antlr3.ANTLRStringStream(input)
+                inStream = antlr3.ANTLRStringStream(user_input)
                 self.parseStream(options, inStream)
 
         else:
@@ -219,7 +220,7 @@ class ParserMain(_Main):
 
 
     def setUp(self, options):
-        lexerMod = __import__(options.lexerClass)
+        lexerMod = __import__(options.lexerClass, globals())
         self.lexerClass = getattr(lexerMod, options.lexerClass)
 
 
@@ -281,9 +282,9 @@ class WalkerMain(_Main):
 
 
     def setUp(self, options):
-        lexerMod = __import__(options.lexerClass)
+        lexerMod = __import__(options.lexerClass, globals())
         self.lexerClass = getattr(lexerMod, options.lexerClass)
-        parserMod = __import__(options.parserClass)
+        parserMod = __import__(options.parserClass, globals())
         self.parserClass = getattr(parserMod, options.parserClass)
 
 

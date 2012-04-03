@@ -6,7 +6,7 @@ import antlr3
 import antlr3.tree
 import testbase
 import sys
-from StringIO import StringIO
+from io import StringIO
 
 class T(testbase.ANTLRTest):
     def setUp(self):
@@ -100,7 +100,7 @@ class T(testbase.ANTLRTest):
 
 
     def testLexerEncoding(self):
-        input = u"föö bär".encode('utf-8')
+        input = "föö bär".encode('utf-8')
 
         grammar = textwrap.dedent(
             r"""lexer grammar T3;

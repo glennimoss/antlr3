@@ -31,7 +31,7 @@
 # end[licence]
 
 import codecs
-from StringIO import StringIO
+from io import StringIO
 
 from antlr3.constants import DEFAULT_CHANNEL, EOF
 from antlr3.tokens import Token, CommonToken
@@ -342,7 +342,7 @@ class ANTLRStringStream(CharStream):
         CharStream.__init__(self)
 
         # The data being scanned
-        self.strdata = unicode(data)
+        self.strdata = str(data)
         self.data = [ord(c) for c in self.strdata]
 
         # How many characters are actually in the buffer
@@ -529,7 +529,7 @@ class ANTLRFileStream(ANTLRStringStream):
     all at once when you construct the object.
     """
 
-    def __init__(self, fileName, encoding=None):
+    def __init__(self, fileName, encoding='UTF-8'):
         """
         @param fileName The path to the file to be opened. The file will be
            opened with mode 'rb'.
@@ -566,20 +566,11 @@ class ANTLRInputStream(ANTLRStringStream):
     All input is consumed from the file, but it is not closed.
     """
 
-    def __init__(self, file, encoding=None):
+    def __init__(self, file):
         """
         @param file A file-like object holding your input. Only the read()
            method must be implemented.
-
-        @param encoding If you set the optional encoding argument, then the
-           data will be decoded on the fly.
-
         """
-
-        if encoding is not None:
-            # wrap input in a decoding reader
-            reader = codecs.lookup(encoding)[2]
-            file = reader(file)
 
         data = file.read()
 
@@ -624,7 +615,7 @@ class CommonTokenStream(TokenStream):
 
         """
 
-        TokenStream.__init__(self)
+        super().__init__()
 
         self.tokenSource = tokenSource
 
@@ -793,9 +784,9 @@ class CommonTokenStream(TokenStream):
         if start > stop:
             return None
 
-        if isinstance(types, (int, long)):
+        if isinstance(types, int):
             # called with a single type, wrap into set
-            types = set([types])
+            types = {types}
 
         filteredTokens = [
             token for token in self.tokens[start:stop]

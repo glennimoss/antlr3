@@ -65,9 +65,9 @@ class t011lexer(testbase.ANTLRTest):
         lexer.nextToken()
         try:
             token = lexer.nextToken()
-            raise AssertionError, token
+            raise AssertionError(token)
 
-        except antlr3.NoViableAltException, exc:
+        except antlr3.NoViableAltException as exc:
             assert exc.unexpectedType == '-', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 1, repr(exc.charPositionInLine)
             assert exc.line == 1, repr(exc.line)

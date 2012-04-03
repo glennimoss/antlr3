@@ -2,7 +2,7 @@
 
 import os
 import unittest
-from StringIO import StringIO
+from io import StringIO
 import antlr3
 
 
@@ -269,10 +269,10 @@ class TestFileStream(unittest.TestCase):
         self.failUnlessEqual(stream.LA(1), ord('a'))
 
 
-    def testEncoded(self):
+    def testUnicode(self):
         path = os.path.join(os.path.dirname(__file__), 'teststreams.input2')
 
-        stream = antlr3.FileStream(path, 'utf-8')
+        stream = antlr3.FileStream(path)
 
         stream.seek(4)
         marker1 = stream.mark()
@@ -288,8 +288,8 @@ class TestFileStream(unittest.TestCase):
         self.failUnlessEqual(stream.index(), 5)
         self.failUnlessEqual(stream.line, 2)
         self.failUnlessEqual(stream.charPositionInLine, 1)
-        self.failUnlessEqual(stream.LT(1), u'ä')
-        self.failUnlessEqual(stream.LA(1), ord(u'ä'))
+        self.failUnlessEqual(stream.LT(1), 'ä')
+        self.failUnlessEqual(stream.LA(1), ord('ä'))
 
 
 
@@ -319,10 +319,10 @@ class TestInputStream(unittest.TestCase):
         self.failUnlessEqual(stream.LA(1), ord('a'))
 
 
-    def testEncoded(self):
-        file = StringIO(u'foo\nbär'.encode('utf-8'))
+    def testUnicode(self):
+        file = StringIO('foo\nbär')
 
-        stream = antlr3.InputStream(file, 'utf-8')
+        stream = antlr3.InputStream(file)
 
         stream.seek(4)
         marker1 = stream.mark()
@@ -338,8 +338,8 @@ class TestInputStream(unittest.TestCase):
         self.failUnlessEqual(stream.index(), 5)
         self.failUnlessEqual(stream.line, 2)
         self.failUnlessEqual(stream.charPositionInLine, 1)
-        self.failUnlessEqual(stream.LT(1), u'ä')
-        self.failUnlessEqual(stream.LA(1), ord(u'ä'))
+        self.failUnlessEqual(stream.LT(1), 'ä')
+        self.failUnlessEqual(stream.LA(1), ord('ä'))
 
 
 class TestCommonTokenStream(unittest.TestCase):

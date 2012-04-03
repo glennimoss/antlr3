@@ -3,7 +3,7 @@ import sys
 import antlr3
 import testbase
 import unittest
-from cStringIO import StringIO
+from io import StringIO
 import difflib
 
 class t020fuzzy(testbase.ANTLRTest):

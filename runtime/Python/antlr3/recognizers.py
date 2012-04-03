@@ -246,7 +246,7 @@ class BaseRecognizer(object):
 
             if len(self._state.following) > 0:
                 # remove EOR if we're not the start symbol
-                follow = follow - set([EOR_TOKEN_TYPE])
+                follow = follow - {EOR_TOKEN_TYPE}
 
         # if current token is consistent with what could come after set
         # then we know we're missing a token; error recovery is free to
@@ -1029,7 +1029,7 @@ class TokenSource(object):
         return self
 
 
-    def next(self):
+    def __next__(self):
         """Return next token or raise StopIteration.
 
         Note that this will raise StopIteration when hitting the EOF token,
@@ -1054,15 +1054,14 @@ class Lexer(BaseRecognizer, TokenSource):
     """
 
     def __init__(self, input, state=None):
-        BaseRecognizer.__init__(self, state)
-        TokenSource.__init__(self)
+        super().__init__(state)
 
         # Where is the lexer drawing characters from?
         self.input = input
 
 
     def reset(self):
-        BaseRecognizer.reset(self) # reset all recognizer state variables
+        super().reset() # reset all recognizer state variables
 
         if self.input is not None:
             # rewind the input
@@ -1118,11 +1117,11 @@ class Lexer(BaseRecognizer, TokenSource):
 
                 return self._state.token
 
-            except NoViableAltException, re:
+            except NoViableAltException as re:
                 self.reportError(re)
                 self.recover(re) # throw out current char and try again
 
-            except RecognitionException, re:
+            except RecognitionException as re:
                 self.reportError(re)
                 # match() routine has already called recover()
 
@@ -1187,7 +1186,7 @@ class Lexer(BaseRecognizer, TokenSource):
 
 
     def match(self, s):
-        if isinstance(s, basestring):
+        if isinstance(s, str):
             for c in s:
                 if self.input.LA(1) != ord(c):
                     if self._state.backtracking > 0:
@@ -1204,7 +1203,7 @@ class Lexer(BaseRecognizer, TokenSource):
                 if self._state.backtracking > 0:
                     raise BacktrackingFailed
 
-                mte = MismatchedTokenException(unichr(s), self.input)
+                mte = MismatchedTokenException(chr(s), self.input)
                 self.recover(mte) # don't really recover; just consume in lexer
                 raise mte
 
@@ -1220,7 +1219,7 @@ class Lexer(BaseRecognizer, TokenSource):
             if self._state.backtracking > 0:
                 raise BacktrackingFailed
 
-            mre = MismatchedRangeException(unichr(a), unichr(b), self.input)
+            mre = MismatchedRangeException(chr(a), chr(b), self.input)
             self.recover(mre)
             raise mre
 

@@ -48,9 +48,9 @@ class t006lexer(testbase.ANTLRTest):
         lexer.nextToken()
         try:
             token = lexer.nextToken()
-            raise AssertionError, token
+            raise AssertionError(token)
 
-        except antlr3.MismatchedTokenException, exc:
+        except antlr3.MismatchedTokenException as exc:
             assert exc.expecting == 'f', repr(exc.expecting)
             assert exc.unexpectedType == '2', repr(exc.unexpectedType)
             assert exc.charPositionInLine == 10, repr(exc.charPositionInLine)
