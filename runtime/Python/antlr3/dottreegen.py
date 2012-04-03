@@ -114,7 +114,7 @@ class DOTTreeGenerator(object):
         # for each child, do a "<unique-name> [label=text]" node def
         for i in range(n):
             child = adaptor.getChild(tree, i)
-            
+
             number = self.getNodeNumber(child)
             if number not in knownNodes:
                 nodeST = self.getNodeST(adaptor, child)
@@ -203,7 +203,7 @@ def toDOT(tree, adaptor=None, treeST=DOTTreeGenerator._treeST, edgeST=DOTTreeGen
         print tree.toStringTree()
         st = antlr3.extras.toDOT(t)
         print st
-        
+
     """
 
     gen = DOTTreeGenerator()

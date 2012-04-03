@@ -197,7 +197,7 @@ class CommonToken(Token):
             self.line = 0
             self.channel = channel
 
-	    #What token number is this from 0..n-1 tokens; < 0 implies invalid index
+            #What token number is this from 0..n-1 tokens; < 0 implies invalid index
             self.index = -1
 
             # We need to be able to change the text once in a while.  If
@@ -232,7 +232,7 @@ class CommonToken(Token):
         rather than pulling from the buffer.  Note that this does not mean
         that start/stop indexes are not valid.  It means that that input
         was converted to a new string in the token object.
-	"""
+        """
         self._text = text
 
     text = property(getText, setText)
@@ -294,9 +294,9 @@ class CommonToken(Token):
 
         txt = self.text
         if txt is not None:
-            txt = txt.replace("\n","\\\\n")
-            txt = txt.replace("\r","\\\\r")
-            txt = txt.replace("\t","\\\\t")
+            txt = txt.replace("\n", "\\\\n")
+            txt = txt.replace("\r", "\\\\r")
+            txt = txt.replace("\t", "\\\\t")
         else:
             txt = "<no text>"
 
