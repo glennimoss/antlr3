@@ -67,11 +67,11 @@ public class Tool {
     /** Don't process grammar file if generated files are newer than grammar */
     private boolean make = false;
     private boolean showBanner = true;
-	private static boolean exitNow = false;
-	private static boolean return_dont_exit = false;
+    private static boolean exitNow = false;
+    private static boolean return_dont_exit = false;
 
 
-	public String forcedLanguageOption; // -language L on command line
+    public String forcedLanguageOption; // -language L on command line
 
     // The internal options are for my use on the command line during dev
     //
@@ -91,7 +91,7 @@ public class Tool {
 
         if (!exitNow) {
             antlr.process();
-			if ( return_dont_exit ) return;
+            if ( return_dont_exit ) return;
             if (ErrorManager.getNumErrors() > 0) {
                 System.exit(1);
             }
@@ -129,7 +129,7 @@ public class Tool {
         loadResources();
     }
 
-	@SuppressWarnings("OverridableMethodCallInConstructor")
+    @SuppressWarnings("OverridableMethodCallInConstructor")
     public Tool(String[] args) {
         loadResources();
 
@@ -172,33 +172,33 @@ public class Tool {
                     }
                 }
             }
-			else if (args[i].equals("-lib")) {
-				if (i + 1 >= args.length) {
-					System.err.println("missing library directory with -lib option; ignoring");
-				}
-				else {
-					i++;
-					setLibDirectory(args[i]);
-					if (getLibraryDirectory().endsWith("/") ||
-						getLibraryDirectory().endsWith("\\")) {
-						setLibDirectory(getLibraryDirectory().substring(0, getLibraryDirectory().length() - 1));
-					}
-					File outDir = new File(getLibraryDirectory());
-					if (!outDir.exists()) {
-						ErrorManager.error(ErrorManager.MSG_DIR_NOT_FOUND, getLibraryDirectory());
-						setLibDirectory(".");
-					}
-				}
-			}
-			else if (args[i].equals("-language")) {
-				if (i + 1 >= args.length) {
-					System.err.println("missing language name; ignoring");
-				}
-				else {
-					i++;
-					forcedLanguageOption = args[i];
-				}
-			}
+            else if (args[i].equals("-lib")) {
+                if (i + 1 >= args.length) {
+                    System.err.println("missing library directory with -lib option; ignoring");
+                }
+                else {
+                    i++;
+                    setLibDirectory(args[i]);
+                    if (getLibraryDirectory().endsWith("/") ||
+                        getLibraryDirectory().endsWith("\\")) {
+                        setLibDirectory(getLibraryDirectory().substring(0, getLibraryDirectory().length() - 1));
+                    }
+                    File outDir = new File(getLibraryDirectory());
+                    if (!outDir.exists()) {
+                        ErrorManager.error(ErrorManager.MSG_DIR_NOT_FOUND, getLibraryDirectory());
+                        setLibDirectory(".");
+                    }
+                }
+            }
+            else if (args[i].equals("-language")) {
+                if (i + 1 >= args.length) {
+                    System.err.println("missing language name; ignoring");
+                }
+                else {
+                    i++;
+                    forcedLanguageOption = args[i];
+                }
+            }
             else if (args[i].equals("-nfa")) {
                 setGenerate_NFA_dot(true);
             }
@@ -271,8 +271,8 @@ public class Tool {
             }
             else if (args[i].equals("-XdbgST")) {
                 CodeGenerator.LAUNCH_ST_INSPECTOR = true;
-				STGroup.trackCreationEvents = true;
-				return_dont_exit = true;
+                STGroup.trackCreationEvents = true;
+                return_dont_exit = true;
             }
             else if (args[i].equals("-Xmaxinlinedfastates")) {
                 if (i + 1 >= args.length) {
@@ -328,12 +328,12 @@ public class Tool {
                     DFA.MAX_TIME_PER_DFA_CREATION = Integer.parseInt(args[i]);
                 }
             }
-			else if (args[i].equals("-Xnfastates")) {
-				DecisionProbe.verbose = true;
-			}
-			else if (args[i].equals("-Xsavelexer")) {
-				deleteTempLexer = false;
-			}
+            else if (args[i].equals("-Xnfastates")) {
+                DecisionProbe.verbose = true;
+            }
+            else if (args[i].equals("-Xsavelexer")) {
+                deleteTempLexer = false;
+            }
             else if (args[i].equals("-X")) {
                 Xhelp();
             }
@@ -408,7 +408,7 @@ public class Tool {
 
     public void process() {
         boolean exceptionWhenWritingLexerFile = false;
-        String lexerGrammarFileName;		// necessary at this scope to have access in the catch below
+        String lexerGrammarFileName;        // necessary at this scope to have access in the catch below
 
         // Have to be tricky here when Maven or build tools call in and must new Tool()
         // before setting options. The banner won't display that way!
@@ -460,10 +460,10 @@ public class Tool {
                 Grammar rootGrammar = getRootGrammar(grammarFileName);
                 // we now have all grammars read in as ASTs
                 // (i.e., root and all delegates)
-				rootGrammar.composite.assignTokenTypes();
-				//rootGrammar.composite.translateLeftRecursiveRules();
-				rootGrammar.addRulesForSyntacticPredicates();
-				rootGrammar.composite.defineGrammarSymbols();
+                rootGrammar.composite.assignTokenTypes();
+                //rootGrammar.composite.translateLeftRecursiveRules();
+                rootGrammar.addRulesForSyntacticPredicates();
+                rootGrammar.composite.defineGrammarSymbols();
                 rootGrammar.composite.createNFAs();
 
                 generateRecognizer(rootGrammar);
@@ -473,8 +473,8 @@ public class Tool {
                 }
 
                 if (isReport()) {
-					GrammarReport2 greport = new GrammarReport2(rootGrammar);
-					System.out.print(greport.toString());
+                    GrammarReport2 greport = new GrammarReport2(rootGrammar);
+                    System.out.print(greport.toString());
 //                    GrammarReport greport = new GrammarReport(rootGrammar);
 //                    System.out.println(greport.toString());
 //                    // print out a backtracking report too (that is not encoded into log)
@@ -518,7 +518,7 @@ public class Tool {
                         sr.close();
 
                         lexerGrammar.composite.assignTokenTypes();
-						lexerGrammar.addRulesForSyntacticPredicates();
+                        lexerGrammar.addRulesForSyntacticPredicates();
                         lexerGrammar.composite.defineGrammarSymbols();
                         lexerGrammar.composite.createNFAs();
 
@@ -732,15 +732,15 @@ public class Tool {
         System.err.println("  -report               print out a report about the grammar(s) processed");
         System.err.println("  -print                print out the grammar without actions");
         System.err.println("  -debug                generate a parser that emits debugging events");
-		System.err.println("  -profile              generate a parser that computes profiling information");
-		System.err.println("  -trace                generate a recognizer that traces rule entry/exit");
+        System.err.println("  -profile              generate a parser that computes profiling information");
+        System.err.println("  -trace                generate a recognizer that traces rule entry/exit");
         System.err.println("  -nfa                  generate an NFA for each rule");
         System.err.println("  -dfa                  generate a DFA for each decision point");
         System.err.println("  -message-format name  specify output style for messages");
         System.err.println("  -verbose              generate ANTLR version and other information");
         System.err.println("  -make                 only build if generated files older than grammar");
-		System.err.println("  -version              print the version of ANTLR and exit.");
-		System.err.println("  -language L           override language grammar option; generate L");
+        System.err.println("  -version              print the version of ANTLR and exit.");
+        System.err.println("  -language L           override language grammar option; generate L");
         System.err.println("  -X                    display extended argument list");
     }
 
@@ -750,8 +750,8 @@ public class Tool {
         System.err.println("  -Xdfa                   print DFA as text ");
         System.err.println("  -Xnoprune               test lookahead against EBNF block exit branches");
         System.err.println("  -Xnocollapse            collapse incident edges into DFA states");
-		System.err.println("  -Xdbgconversion         dump lots of info during NFA conversion");
-		System.err.println("  -Xconversiontimeout     use to restrict NFA conversion exponentiality");
+        System.err.println("  -Xdbgconversion         dump lots of info during NFA conversion");
+        System.err.println("  -Xconversiontimeout     use to restrict NFA conversion exponentiality");
         System.err.println("  -Xmultithreaded         run the analysis in 2 threads");
         System.err.println("  -Xnomergestopstates     do not merge stop states");
         System.err.println("  -Xdfaverbose            generate DFA states in DOT with NFA configs");
@@ -762,8 +762,8 @@ public class Tool {
         System.err.println("  -Xmaxdfaedges m         max \"comfortable\" number of edges for single DFA state     [" + DFA.MAX_STATE_TRANSITIONS_FOR_TABLE + "]");
         System.err.println("  -Xmaxinlinedfastates m  max DFA states before table used rather than inlining      [" + CodeGenerator.MADSI_DEFAULT +"]");
         System.err.println("  -Xmaxswitchcaselabels m don't generate switch() statements for dfas bigger  than m [" + CodeGenerator.MSCL_DEFAULT +"]");
-		System.err.println("  -Xminswitchalts m       don't generate switch() statements for dfas smaller than m [" + CodeGenerator.MSA_DEFAULT + "]");
-		System.err.println("  -Xsavelexer             don't delete temporary lexers generated from combined grammars");
+        System.err.println("  -Xminswitchalts m       don't generate switch() statements for dfas smaller than m [" + CodeGenerator.MSA_DEFAULT + "]");
+        System.err.println("  -Xsavelexer             don't delete temporary lexers generated from combined grammars");
     }
 
     /**
