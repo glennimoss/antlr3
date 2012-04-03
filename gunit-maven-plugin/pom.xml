@@ -113,7 +113,7 @@
         </repository>
 
     </repositories>
-    
+
     <!-- Ancilliary information for completeness
       -->
     <inceptionYear>2009</inceptionYear>
@@ -183,7 +183,7 @@
          Dependency on the gUnit artifact.
         -->
         <dependency>
-            <groupId>${groupId}</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>gunit</artifactId>
             <version>3.3</version>
         </dependency>
@@ -206,9 +206,9 @@
             <version>1.0</version>
             <scope>test</scope>
         </dependency>
-        
+
     </dependencies>
-    
+
     <build>
 
         <defaultGoal>install</defaultGoal>
@@ -237,7 +237,7 @@
                 </configuration>
             </plugin>
 
-            <plugin>  
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
                 <version>2.1.2</version>
