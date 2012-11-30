@@ -33,7 +33,7 @@ import org.antlr.grammar.v3.ANTLRParser;
 import org.antlr.misc.Utils;
 import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
-import org.stringtemplate.v4.STGroupDir;
+import org.stringtemplate.v4.STGroupFile;
 
 import java.util.*;
 
@@ -45,7 +45,7 @@ public class DOTGenerator {
 	protected String rankdir="LR";
 
 	/** Library of output templates; use <attrname> format */
-    public static STGroup stlib = new STGroupDir("org/antlr/tool/templates/dot/dfa");
+    public static STGroup stlib = new STGroupFile("org/antlr/tool/templates/dot/dot.stg");
 
     /** To prevent infinite recursion when walking state machines, record
      *  which states we've visited.  Make a new set every time you start
@@ -86,7 +86,7 @@ public class DOTGenerator {
 			walkRuleNFACreatingDOT(dot, startState);
         }
 		dot.add("rankdir", rankdir);
-        return dot.toString();
+        return dot.render();
     }
 
     /** Return a String containing a DOT description that, when displayed,
@@ -187,7 +187,7 @@ public class DOTGenerator {
 		if ( ((NFAState)s).isDecisionState() ) {
 			GrammarAST n = ((NFAState)s).associatedASTNode;
 			if ( n!=null && n.getType()!=ANTLRParser.EOB ) {
-				ST rankST = stlib.getInstanceOf("decision-rank");
+				ST rankST = stlib.getInstanceOf("decision_rank");
 				NFAState alt = (NFAState)s;
 				while ( alt!=null ) {
 					rankST.add("states", getStateLabel(alt));
@@ -224,10 +224,10 @@ public class DOTGenerator {
                 continue;
             }
 			if ( edge.isAction() ) {
-				edgeST = stlib.getInstanceOf("action-edge");
+				edgeST = stlib.getInstanceOf("action_edge");
 			}
 			else if ( edge.isEpsilon() ) {
-				edgeST = stlib.getInstanceOf("epsilon-edge");
+				edgeST = stlib.getInstanceOf("epsilon_edge");
 			}
 			else {
 				edgeST = stlib.getInstanceOf("edge");

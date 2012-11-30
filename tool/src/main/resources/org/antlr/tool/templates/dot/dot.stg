@@ -31,7 +31,7 @@
  */
 
 dfa(decisionRanks,states,edges,rankdir,startState,useBox) ::= <<
-digraph NFA {
+digraph DFA {
 <if(rankdir)>rankdir=<rankdir>;<endif>
 <decisionRanks; separator="\n">
 <states; separator="\n">
