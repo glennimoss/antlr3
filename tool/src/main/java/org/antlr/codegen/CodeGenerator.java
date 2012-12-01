@@ -806,7 +806,9 @@ public class CodeGenerator {
 				}
 			}
 			sST.add("k", Utils.integer(k));
+		if (sST.getAttribute("values") != null) {
 			setST.add("ranges", sST);
+		}
 			return setST;
 		}
 		Iterator<Interval> iter = iset.getIntervals().iterator();
@@ -928,6 +930,15 @@ public class CodeGenerator {
 		List<Object> chunks = translator.translateToChunks();
 		chunks = target.postProcessAction(chunks, actionTree.token);
 		return chunks;
+	}
+
+	public String translateHoistedPredicate(String sourceRuleName, int sourceAltNum, String predicate,
+            GrammarAST arguments)
+	{
+        CommonToken predToken = new CommonToken(ANTLRParser.ACTION, predicate);
+		List<String> args = getListOfArgumentsFromAction(arguments.getText(),',');
+		ActionTranslator translator = new ActionTranslator(this, sourceRuleName, predToken, sourceAltNum, args);
+		return translator.translate();
 	}
 
 	/** Translate an action like [3,"foo",a[3]] and return a List of the

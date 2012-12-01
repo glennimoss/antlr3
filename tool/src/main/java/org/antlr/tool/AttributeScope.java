@@ -120,10 +120,9 @@ public class AttributeScope {
 	 *  separator=';'.  It results in two Attribute objects.
 	 */
 	public void addAttributes(String definitions, int separator) {
-		List<String> attrs = new ArrayList<String>();
-		CodeGenerator.getListOfArgumentsFromAction(definitions,0,-1,separator,attrs);
+		List<String> attrs = CodeGenerator.getListOfArgumentsFromAction(definitions, separator);
 		for (String a : attrs) {
-			Attribute attr = new Attribute(a);
+			Attribute attr = new Attribute(a, attributes.size());
 			if ( !isReturnScope && attr.initValue!=null ) {
 				ErrorManager.grammarError(ErrorManager.MSG_ARG_INIT_VALUES_ILLEGAL,
 										  grammar,

@@ -744,12 +744,23 @@ public class NFAToDFAConverter {
 						", epsilon target "+
 						altLeftEdge.transition(0).target.stateNumber);
 					*/
-					if ( !labelContext.isSyntacticPredicate() ||
-						 p==altLeftEdge.transition[0].target )
-					{
-						//System.out.println("&"+labelContext+" enclosingRule="+p.enclosingRule);
+					if (!labelContext.isSyntacticPredicate() ||
+						p==altLeftEdge.transition[0].target) {
+
+                        NFAContext callChain = context;
+                        SemanticContext.Predicate pred = (SemanticContext.Predicate)labelContext;
+                        while (callChain != null && callChain.invokingState != null) {
+                            RuleClosureTransition call = (RuleClosureTransition)callChain.invokingState.transition[0];
+                            if (call.arguments == null) {
+                                break;
+                            }
+                            pred = new SemanticContext.HoistedPredicate(pred, call.arguments);
+                            callChain = callChain.parent;
+                        }
+
+                        //System.out.println("&"+pred+" enclosingRule="+p.enclosingRule);
 						newSemanticContext =
-							SemanticContext.and(semanticContext, labelContext);
+							SemanticContext.and(semanticContext, pred);
 					}
 				}
 				closure((NFAState)transition0.target,

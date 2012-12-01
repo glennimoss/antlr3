@@ -573,7 +573,7 @@ atom[String scopeName] returns [StateCluster g=null]
 			if ( start!=null )
 			{
 				Rule rr = grammar.getRule(scopeName,$r.text);
-				$g = factory.build_RuleRef(rr, start);
+				$g = factory.build_RuleRef(rr, $rarg, start);
 				r.followingNFAState = $g.right;
 				r.NFAStartState = $g.left;
 				if ( $g.left.transition(0) instanceof RuleClosureTransition
@@ -593,7 +593,7 @@ atom[String scopeName] returns [StateCluster g=null]
 				if ( start!=null )
 				{
 					Rule rr = grammar.getRule(scopeName,t.getText());
-					$g = factory.build_RuleRef(rr, start);
+					$g = factory.build_RuleRef(rr, $targ, start);
 					t.NFAStartState = $g.left;
 					// don't add FOLLOW transitions in the lexer;
 					// only exact context should be used.

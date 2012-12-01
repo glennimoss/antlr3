@@ -37,7 +37,7 @@ public class PredicateLabel extends Label {
 	 *  multiple NFA configurations into a single DFA state.
 	 */
 	protected SemanticContext semanticContext;
-	
+
 	/** Make a semantic predicate label */
 	public PredicateLabel(GrammarAST predicateASTNode) {
 		super(SEMPRED);
@@ -86,6 +86,7 @@ public class PredicateLabel extends Label {
 
 	@Override
 	public String toString(Grammar g) {
-		return toString();
+		return "{" + semanticContext.genExpr(g.getCodeGenerator(), g.getCodeGenerator().getTemplates(),
+                null).render() + "}?";
 	}
 }

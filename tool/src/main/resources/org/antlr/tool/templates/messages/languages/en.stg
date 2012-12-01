@@ -229,6 +229,7 @@ CONFLICTING_OPTION_IN_TREE_FILTER(arg,arg2) ::= "option <arg>=<arg2> conflicts w
 ILLEGAL_OPTION_VALUE(arg, arg2) ::= "value '<arg2>' invalid for option <arg>"
 ALL_OPS_NEED_SAME_ASSOC(arg) ::= "all operators of alt <alt> of left-recursive rule must have same associativity"
 RANGE_OP_ILLEGAL(arg) ::= "the .. range operator isn't allowed in parser rules"
+HOISTED_VAR_NOT_PARAMETER(arg, arg2) ::= "When hoisting semantic predicate {<arg>}? cannot substitute variable <arg2> because it is not a rule parameter"
 
 // GRAMMAR WARNINGS
 

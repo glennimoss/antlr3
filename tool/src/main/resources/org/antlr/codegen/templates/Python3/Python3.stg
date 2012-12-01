@@ -973,7 +973,7 @@ self.match(self.input, UP, None)
  *  also hoisted into a prediction expression).
  */
 validateSemanticPredicate(pred,description) ::= <<
-if not (<evalPredicate(pred, description)>):
+if not <evalPredicate(pred, description)>:
     <ruleBacktrackFailure()>
     raise FailedPredicateException(self.input, "<ruleName>", "<description>")
 
@@ -1033,7 +1033,7 @@ dfaAcceptState(alt) ::= "alt<decisionNumber> = <alt>"
  *  have to evaluate some predicates for this edge.
  */
 dfaEdge(labelExpr, targetState, predicates) ::= <<
-if (<labelExpr>) <if(predicates)>and (<predicates>)<endif>:
+if <labelExpr><if(predicates)> and (<predicates>)<endif>:
     <targetState>
 >>
 
@@ -1078,7 +1078,9 @@ else:
 >>
 
 dfaEdgeSwitch(labels, targetState) ::= <<
-if LA<decisionNumber> in {<labels; separator=", ">}:
+<if(rest(labels))>if LA<decisionNumber> in {<labels; separator=", ">}:
+<else>if LA<decisionNumber> == <first(labels)>:
+<endif>
     <targetState>
 >>
 
@@ -1215,11 +1217,11 @@ se:
 
 // D F A  E X P R E S S I O N S
 
-andPredicates(left,right) ::= "((<left>) and (<right>))"
+andPredicates(left,right) ::= "(<left> and <right>)"
 
 orPredicates(operands) ::= "(<operands; separator=\" or \">)"
 
-notPredicate(pred) ::= "not (<evalPredicate(pred, {})>)"
+notPredicate(pred) ::= "not <evalPredicate(pred, {})>"
 
 evalPredicate(pred,description) ::= "(<pred>)"
 
@@ -1369,7 +1371,7 @@ isolatedDynamicScopeRef(scope) ::= "self.<scope>_stack"
 /** reference an attribute of rule; might only have single return value */
 ruleLabelRef(referencedRule,scope,attr) ::= <%
 <if(referencedRule.hasMultipleReturnValues)>
-((<scope> is not None) and [<scope>.<attr.name>] or [None])[0]
+<noneTest(scope, {<scope>.<attr.name>})>
 <else>
 <scope>
 <endif>
@@ -1414,26 +1416,26 @@ ruleLabelPropertyRef_stop(scope,attr) ::= "<scope>.stop"
 ruleLabelPropertyRef_tree(scope,attr) ::= "<scope>.tree"
 ruleLabelPropertyRef_text(scope,attr) ::= <%
 <if(TREE_PARSER)>
-((<scope> is not None) and [self.input.getTokenStream().toString(
-    self.input.getTreeAdaptor().getTokenStartIndex(<scope>.start),
-    self.input.getTreeAdaptor().getTokenStopIndex(<scope>.start)
-    )] or [None])[0]
+<noneTest({self.input.getTokenStream().toString(
+  self.input.getTreeAdaptor().getTokenStartIndex(<scope>.start), 
+  self.input.getTreeAdaptor().getTokenStopIndex(<scope>.start))}, scope)>
 <else>
-((<scope> is not None) and [self.input.toString(<scope>.start,<scope>.stop)] or [None])[0]
+<noneTest({self.input.toString(<scope>.start, <scope>.stop)}, scope)>
 <endif>
 %>
-ruleLabelPropertyRef_st(scope,attr) ::= "((<scope> is not None) and [<scope>.st] or [None])[0]"
+ruleLabelPropertyRef_st(scope,attr) ::= "<noneTest({<scope>.st}, scope)>"
 
 /** Isolated $RULE ref ok in lexer as it's a Token */
 lexerRuleLabel(label) ::= "<label>"
 
-lexerRuleLabelPropertyRef_type(scope,attr) ::= "((<scope> is not None) and [<scope>.type] or [0])[0]"
-lexerRuleLabelPropertyRef_line(scope,attr) ::= "((<scope> is not None) and [<scope>.line] or [0])[0]"
-lexerRuleLabelPropertyRef_pos(scope,attr) ::= "((<scope> is not None) and [<scope>.charPositionInLine] or [0])[0]"
-lexerRuleLabelPropertyRef_channel(scope,attr) ::= "((<scope> is not None) and [<scope>.channel] or [0])[0]"
-lexerRuleLabelPropertyRef_index(scope,attr) ::= "((<scope> is not None) and [<scope>.index] or [0])[0]"
-lexerRuleLabelPropertyRef_text(scope,attr) ::= "((<scope> is not None) and [<scope>.text] or [None])[0]"
-lexerRuleLabelPropertyRef_int(scope,attr) ::= "((<scope> is not None) and [int(<scope>.text)] or [0])[0]"
+lexerRuleLabelPropertyRef_type(scope,attr) ::= "<noneTest({<scope>.type}, scope)>"
+lexerRuleLabelPropertyRef_line(scope,attr) ::= "<noneTest({<scope>.line}, scope)>"
+lexerRuleLabelPropertyRef_pos(scope,attr) ::= "<noneTest({<scope>.charPositionInLine}, scope)>"
+lexerRuleLabelPropertyRef_channel(scope,attr) ::= "<noneTest({<scope>.channel}, scope)>"
+lexerRuleLabelPropertyRef_index(scope,attr) ::= "<noneTest({<scope>.index}, scope)>"
+lexerRuleLabelPropertyRef_text(scope,attr) ::= "<noneTest({<scope>.text}, scope)>"
+lexerRuleLabelPropertyRef_int(scope,attr) ::= "<noneTest({int(<scope>.text)}, scope)>"
+
 
 // Somebody may ref $template or $tree or $stop within a rule:
 rulePropertyRef_start(scope,attr) ::= "retval.start"
@@ -1454,8 +1456,8 @@ lexerRulePropertyRef_int(scope,attr) ::= "int(<scope>.text)"
 
 // setting $st and $tree is allowed in local rule. everything else
 // is flagged as error
-ruleSetPropertyRef_tree(scope,attr,expr) ::= "retval.tree =<expr>"
-ruleSetPropertyRef_st(scope,attr,expr) ::= "retval.st =<expr>"
+ruleSetPropertyRef_tree(scope,attr,expr) ::= "retval.tree = <expr>"
+ruleSetPropertyRef_st(scope,attr,expr) ::= "retval.st = <expr>"
 
 
 /** How to execute an action (only when not backtracking) */
@@ -1489,3 +1491,5 @@ codeFileExtension() ::= ".py"
 
 true_value() ::= "True"
 false_value() ::= "False"
+
+noneTest(val, test) ::= "(<val> if <test> is not None else None)"

@@ -175,41 +175,42 @@ public abstract class SemanticContext {
 									  STGroup templates,
 									  DFA dfa)
 		{
+            return genExpr(generator, templates, dfa, this.predicateAST);
+        }
+
+		protected ST genExpr(CodeGenerator generator,
+                             STGroup templates,
+                             DFA dfa,
+                             GrammarAST actionTree)
+		{
 			ST eST;
-			if ( templates!=null ) {
-				if ( synpred ) {
-					eST = templates.getInstanceOf("evalSynPredicate");
-				}
-				else {
-					eST = templates.getInstanceOf("evalPredicate");
-					generator.grammar.decisionsWhoseDFAsUsesSemPreds.add(dfa);
-				}
-				String predEnclosingRuleName = predicateAST.enclosingRuleName;
-				/*
-				String decisionEnclosingRuleName =
-					dfa.getNFADecisionStartState().getEnclosingRule();
-				// if these rulenames are diff, then pred was hoisted out of rule
-				// Currently I don't warn you about this as it could be annoying.
-				// I do the translation anyway.
-				*/
-				//eST.add("pred", this.toString());
-				if ( generator!=null ) {
-					eST.add("pred",
-									 generator.translateAction(predEnclosingRuleName,predicateAST));
-				}
-			}
-			else {
-				eST = new ST("<pred>");
-				eST.add("pred", this.toString());
-				return eST;
-			}
-			if ( generator!=null ) {
-				String description =
-					generator.target.getTargetStringLiteralFromString(this.toString());
-				eST.add("description", description);
+            if (templates != null) {
+                if ( synpred ) {
+                    eST = templates.getInstanceOf("evalSynPredicate");
+                }
+                else {
+                    eST = templates.getInstanceOf("evalPredicate");
+                }
+            } else {
+                eST = new ST("<pred>");
+            }
+
+			if (generator != null) {
+                if (dfa != null && !synpred) {
+                    generator.grammar.decisionsWhoseDFAsUsesSemPreds.add(dfa);
+                }
+                eST.add("pred", generator.translateAction(actionTree.enclosingRuleName, actionTree));
+				eST.add("description", generator.target.getTargetStringLiteralFromString(this.toString()));
+			} else {
+				eST.add("pred", actionTree.getText());
 			}
 			return eST;
 		}
+
+        protected String hoistExpr (CodeGenerator generator)
+        {
+            return this.predicateAST.getText();
+        }
 
 		@Override
 		public SemanticContext getGatedPredicateContext() {
@@ -247,6 +248,14 @@ public abstract class SemanticContext {
 			}
 			return predicateAST.getText();
 		}
+
+        public String getEnclosingRuleName () {
+            return this.predicateAST.enclosingRuleName;
+        }
+
+        public int getAltNum () {
+            return this.predicateAST.outerAltNum;
+        }
 	}
 
 	public static class TruePredicate extends Predicate {
@@ -302,6 +311,84 @@ public abstract class SemanticContext {
 			return "false"; // not used for code gen, just DOT and print outs
 		}
 	}
+
+    public static class HoistedPredicate extends Predicate {
+        protected Predicate semPred;
+        public GrammarAST arguments;
+
+        public HoistedPredicate (Predicate semPred, GrammarAST arguments) {
+            super(semPred);
+            this.semPred = semPred;
+            this.arguments = arguments;
+        }
+
+
+        @Override
+        public ST genExpr(CodeGenerator generator,
+                          STGroup templates,
+                          DFA dfa)
+        {
+            String hoistedExpr = hoistExpr(generator);
+            GrammarAST actionTree = new GrammarAST();
+            // Borrow all contextual info from the arguments tree.
+            actionTree.initialize(this.arguments);
+            // But then replace the token with our actual expression text
+            actionTree.initialize(ANTLRParser.ACTION, hoistedExpr);
+            return genExpr(generator, templates, dfa, actionTree);
+        }
+
+        @Override
+        protected String hoistExpr (CodeGenerator generator)
+        {
+            String semExpr = this.semPred.hoistExpr(generator);
+            String hoistedExpr;
+            if (generator != null) {
+                hoistedExpr = generator.translateHoistedPredicate(this.semPred.getEnclosingRuleName(),
+                        this.semPred.getAltNum(), semExpr, this.arguments);
+            } else {
+                hoistedExpr = this.toString();
+            }
+            return hoistedExpr;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder buf = new StringBuilder();
+            buf.append('(');
+            buf.append(this.semPred.toString());
+            buf.append(")(");
+            buf.append(this.arguments.getText());
+            buf.append(')');
+            return buf.toString();
+        }
+
+        @Override
+        public String getEnclosingRuleName () {
+            return this.arguments.enclosingRuleName;
+        }
+
+        @Override
+        public int getAltNum () {
+            return this.arguments.outerAltNum;
+        }
+
+		@Override
+		public boolean equals(Object o) {
+			if ( !(o instanceof HoistedPredicate) ) {
+				return false;
+			}
+
+			HoistedPredicate other = (HoistedPredicate)o;
+
+			return this.semPred.equals(other.semPred) && this.arguments.getText().equals(other.arguments.getText());
+		}
+
+		@Override
+		public int hashCode() {
+			return this.toString().hashCode();
+		}
+    }
+
 
 	public static abstract class CommutativePredicate extends SemanticContext {
 		protected final Set<SemanticContext> operands = new HashSet<SemanticContext>();
@@ -455,8 +542,10 @@ public abstract class SemanticContext {
 		{
 			ST result = null;
 			for (SemanticContext operand : operands) {
-				if (result == null)
+				if (result == null) {
 					result = operand.genExpr(generator, templates, dfa);
+                    continue;
+				}
 
 				ST eST;
 				if ( templates!=null ) {
@@ -608,7 +697,7 @@ public abstract class SemanticContext {
 	}
 
 	public static SemanticContext and(SemanticContext a, SemanticContext b) {
-		//System.out.println("AND: "+a+"&&"+b);
+        //System.out.println("AND: "+a+"&&"+b);
 		if (a instanceof FalsePredicate || b instanceof FalsePredicate)
 			return new FalsePredicate();
 
@@ -621,7 +710,7 @@ public abstract class SemanticContext {
 		if (factored) {
 			return or(commonTerms, and(a, b));
 		}
-		
+
 		//System.Console.Out.WriteLine( "AND: " + a + "&&" + b );
 		if (a instanceof FalsePredicate || b instanceof FalsePredicate)
 			return new FalsePredicate();
@@ -648,7 +737,7 @@ public abstract class SemanticContext {
 	}
 
 	public static SemanticContext or(SemanticContext a, SemanticContext b) {
-		//System.out.println("OR: "+a+"||"+b);
+        //System.out.println("OR: "+a+"||"+b);
 		if (a instanceof TruePredicate || b instanceof TruePredicate)
 			return new TruePredicate();
 
