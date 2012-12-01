@@ -88,6 +88,8 @@ public abstract class SemanticContext {
 		/** The AST node in tree created from the grammar holding the predicate */
 		public GrammarAST predicateAST;
 
+        public GrammarAST arguments;
+
 		/** Is this a {...}?=> gating predicate or a normal disambiguating {..}?
 		 *  If any predicate in expression is gated, then expression is considered
 		 *  gated.
@@ -103,6 +105,7 @@ public abstract class SemanticContext {
 		protected boolean synpred = false;
 
 		public static final int INVALID_PRED_VALUE = -2;
+		public static final int VALID_PRED_VALUE = 1;
 		public static final int FALSE_PRED = 0;
 		public static final int TRUE_PRED = ~0;
 
@@ -117,8 +120,18 @@ public abstract class SemanticContext {
 			this.constantValue=constantValue;
 		}
 
+		public Predicate(int constantValue, GrammarAST arguments) {
+            this(constantValue);
+            this.arguments = arguments;
+        }
+
 		public Predicate(GrammarAST predicate) {
+            this(predicate, null);
+        }
+
+		public Predicate(GrammarAST predicate, GrammarAST arguments) {
 			this.predicateAST = predicate;
+            this.arguments = arguments;
 			this.gated =
 				predicate.getType()==ANTLRParser.GATED_SEMPRED ||
 				predicate.getType()==ANTLRParser.SYN_SEMPRED ;
@@ -132,6 +145,7 @@ public abstract class SemanticContext {
 			this.gated = p.gated;
 			this.synpred = p.synpred;
 			this.constantValue = p.constantValue;
+            this.arguments = p.arguments;
 		}
 
 		/** Two predicates are the same if they are literally the same
@@ -159,11 +173,11 @@ public abstract class SemanticContext {
 
 		@Override
 		public int hashCode() {
-			if (constantValue != INVALID_PRED_VALUE){
+			if (constantValue != VALID_PRED_VALUE){
 				return constantValue;
 			}
 
-			if ( predicateAST ==null ) {
+			if ( predicateAST == null ) {
 				return 0;
 			}
 
@@ -177,103 +191,122 @@ public abstract class SemanticContext {
 		{
 			ST eST;
 			if ( templates!=null ) {
-				if ( synpred ) {
-					eST = templates.getInstanceOf("evalSynPredicate");
-				}
-				else {
-					eST = templates.getInstanceOf("evalPredicate");
-					generator.grammar.decisionsWhoseDFAsUsesSemPreds.add(dfa);
-				}
-				String predEnclosingRuleName = predicateAST.enclosingRuleName;
-				/*
-				String decisionEnclosingRuleName =
-					dfa.getNFADecisionStartState().getEnclosingRule();
-				// if these rulenames are diff, then pred was hoisted out of rule
-				// Currently I don't warn you about this as it could be annoying.
-				// I do the translation anyway.
-				*/
-				//eST.add("pred", this.toString());
-				if ( generator!=null ) {
-					eST.add("pred",
-									 generator.translateAction(predEnclosingRuleName,predicateAST));
-				}
-			}
-			else {
-				eST = new ST("<pred>");
-				eST.add("pred", this.toString());
-				return eST;
-			}
-			if ( generator!=null ) {
-				String description =
-					generator.target.getTargetStringLiteralFromString(this.toString());
-				eST.add("description", description);
-			}
-			return eST;
-		}
+                if ( synpred ) {
+                    eST = templates.getInstanceOf("evalSynPredicate");
+                }
+                else {
+                    eST = templates.getInstanceOf("evalPredicate");
+                    generator.grammar.decisionsWhoseDFAsUsesSemPreds.add(dfa);
+                }
+                if ( generator!=null ) {
+                    List<? extends Object> actionCode = null;
+                    String predEnclosingRuleName = predicateAST.enclosingRuleName;
+                    String decisionEnclosingRuleName =
+                        dfa.getNFADecisionStartState().enclosingRule.name;
 
-		@Override
-		public SemanticContext getGatedPredicateContext() {
-			if ( gated ) {
-				return this;
-			}
-			return null;
-		}
+                    // if these rulenames are diff, then pred was hoisted out of rule
+                    // Currently I don't warn you about this as it could be annoying.
+                    // I do the translation anyway.
+                    if (predEnclosingRuleName == null) {
+                      System.out.println(this);
+                      eST.add("pred", "True");
+                      return eST;
+                    }
+                    if (predEnclosingRuleName != null && !decisionEnclosingRuleName.equals(predEnclosingRuleName)) {
+                        actionCode = generator.translateHoistedAction(predEnclosingRuleName,
+                                this.predicateAST, decisionEnclosingRuleName, this.arguments);
+                    } else {
+                        actionCode = generator.translateAction(predEnclosingRuleName, this.predicateAST);
+                    }
+                    eST.add("pred", actionCode);
+                }
+                //eST.add("pred", this.toString());
+            } else {
+                eST = new ST("<pred>");
+                eST.add("pred", this.toString());
+                return eST;
+            }
+            if ( generator!=null ) {
+                String description =
+                    generator.target.getTargetStringLiteralFromString(this.toString());
+                eST.add("description", description);
+            }
+            return eST;
+        }
 
-		@Override
-		public boolean hasUserSemanticPredicate() { // user-specified sempred
-			return predicateAST !=null &&
-				   ( predicateAST.getType()==ANTLRParser.GATED_SEMPRED ||
-					 predicateAST.getType()==ANTLRParser.SEMPRED );
-		}
+        @Override
+        public SemanticContext getGatedPredicateContext() {
+            if ( gated ) {
+                return this;
+            }
+            return null;
+        }
 
-		@Override
-		public boolean isSyntacticPredicate() {
-			return predicateAST !=null &&
-				( predicateAST.getType()==ANTLRParser.SYN_SEMPRED ||
-				  predicateAST.getType()==ANTLRParser.BACKTRACK_SEMPRED );
-		}
+        @Override
+        public boolean hasUserSemanticPredicate() { // user-specified sempred
+            return predicateAST !=null &&
+                ( predicateAST.getType()==ANTLRParser.GATED_SEMPRED ||
+                  predicateAST.getType()==ANTLRParser.SEMPRED );
+        }
 
-		@Override
-		public void trackUseOfSyntacticPredicates(Grammar g) {
-			if ( synpred ) {
-				g.synPredNamesUsedInDFA.add(predicateAST.getText());
-			}
-		}
+        @Override
+        public boolean isSyntacticPredicate() {
+            return predicateAST !=null &&
+                ( predicateAST.getType()==ANTLRParser.SYN_SEMPRED ||
+                  predicateAST.getType()==ANTLRParser.BACKTRACK_SEMPRED );
+        }
 
-		@Override
-		public String toString() {
-			if ( predicateAST ==null ) {
-				return "<nopred>";
-			}
-			return predicateAST.getText();
-		}
-	}
+        @Override
+        public void trackUseOfSyntacticPredicates(Grammar g) {
+            if ( synpred ) {
+                g.synPredNamesUsedInDFA.add(predicateAST.getText());
+            }
+        }
 
-	public static class TruePredicate extends Predicate {
-		public TruePredicate() {
-			super(TRUE_PRED);
-		}
+        @Override
+        public String toString() {
+            StringBuilder buf = new StringBuilder();
+            boolean args = this.arguments != null;
+            if (args) buf.append("(");
+            if ( predicateAST == null ) {
+                buf.append("<nopred>");
+            } else {
+              buf.append(predicateAST.getText());
+            }
+            if (args) {
+                buf.append(")(");
+                buf.append(this.arguments);
+                buf.append(")");
+            }
+            return buf.toString();
+        }
+    }
 
-		@Override
-		public ST genExpr(CodeGenerator generator,
-									  STGroup templates,
-									  DFA dfa)
-		{
-			if ( templates!=null ) {
-				return templates.getInstanceOf("true_value");
-			}
-			return new ST("true");
-		}
+    public static class TruePredicate extends Predicate {
+        public TruePredicate() {
+            super(TRUE_PRED);
+        }
 
-		@Override
-		public boolean hasUserSemanticPredicate() {
-			return false; // not user specified.
-		}
+        @Override
+        public ST genExpr(CodeGenerator generator,
+                STGroup templates,
+                DFA dfa)
+        {
+            if ( templates!=null ) {
+                return templates.getInstanceOf("true_value");
+            }
+            return new ST("true");
+        }
 
-		@Override
-		public String toString() {
-			return "true"; // not used for code gen, just DOT and print outs
-		}
+        @Override
+        public boolean hasUserSemanticPredicate() {
+            return false; // not user specified.
+        }
+
+        @Override
+        public String toString() {
+            return "true"; // not used for code gen, just DOT and print outs
+        }
 	}
 
 	public static class FalsePredicate extends Predicate {
@@ -608,7 +641,7 @@ public abstract class SemanticContext {
 	}
 
 	public static SemanticContext and(SemanticContext a, SemanticContext b) {
-		//System.out.println("AND: "+a+"&&"+b);
+    //System.out.println("AND: "+a+"&&"+b);
 		if (a instanceof FalsePredicate || b instanceof FalsePredicate)
 			return new FalsePredicate();
 
@@ -621,7 +654,7 @@ public abstract class SemanticContext {
 		if (factored) {
 			return or(commonTerms, and(a, b));
 		}
-		
+
 		//System.Console.Out.WriteLine( "AND: " + a + "&&" + b );
 		if (a instanceof FalsePredicate || b instanceof FalsePredicate)
 			return new FalsePredicate();
@@ -632,6 +665,20 @@ public abstract class SemanticContext {
 		if ( b==EMPTY_SEMANTIC_CONTEXT || b==null ) {
 			return a;
 		}
+
+        if (a instanceof Predicate && b instanceof Predicate) {
+            Predicate pa = (Predicate)a;
+            Predicate pb = (Predicate)b;
+            if ((pa.constantValue == Predicate.INVALID_PRED_VALUE ||
+                 pa.constantValue == Predicate.VALID_PRED_VALUE) &&
+                (pb.constantValue == Predicate.VALID_PRED_VALUE ||
+                 pb.constantValue == Predicate.INVALID_PRED_VALUE)) {
+                // Combine them
+                return new Predicate(pa.arguments == null ? pa.predicateAST : pb.predicateAST,
+                       pa.arguments == null ? pb.arguments : pa.arguments);
+            }
+        }
+
 
 		if (a instanceof TruePredicate)
 			return b;

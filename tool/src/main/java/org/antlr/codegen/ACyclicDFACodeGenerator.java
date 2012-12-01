@@ -124,8 +124,14 @@ public class ACyclicDFACodeGenerator {
 				edgeST.add("labels", targetLabels);
 			}
 			else { // else create an expression to evaluate (the general case)
+        try {
 				edgeST.add("labelExpr",
 									parentGenerator.genLabelExpr(templates,edge,k));
+        } catch (RuntimeException e) {
+          System.out.println(s);
+          System.out.println(edge);
+          throw e;
+        }
 			}
 
 			// stick in any gated predicates for any edge if not already a pred

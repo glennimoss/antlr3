@@ -123,7 +123,7 @@ public class AttributeScope {
 		List<String> attrs = new ArrayList<String>();
 		CodeGenerator.getListOfArgumentsFromAction(definitions,0,-1,separator,attrs);
 		for (String a : attrs) {
-			Attribute attr = new Attribute(a);
+			Attribute attr = new Attribute(a, attributes.size());
 			if ( !isReturnScope && attr.initValue!=null ) {
 				ErrorManager.grammarError(ErrorManager.MSG_ARG_INIT_VALUES_ILLEGAL,
 										  grammar,

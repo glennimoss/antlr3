@@ -595,11 +595,11 @@ public class NFAToDFAConverter {
 						DFAState d,
 						boolean collectPredicates)
 	{
-		if ( debug ){
+        if ( debug ){
 			System.out.println("closure at "+p.enclosingRule.name+" state "+p.stateNumber+"|"+
 							   alt+" filling DFA state "+d.stateNumber+" with context "+context
 							   );
-		}
+        }
 
 //		if ( DFA.MAX_TIME_PER_DFA_CREATION>0 &&
 //			 System.currentTimeMillis() - d.dfa.conversionStartTime >=
@@ -668,6 +668,22 @@ public class NFAToDFAConverter {
 
 			// otherwise, it's cool to (re)enter target of this rule ref
 			RuleClosureTransition ref = (RuleClosureTransition)transition0;
+      if (semanticContext instanceof SemanticContext.TruePredicate || semanticContext instanceof SemanticContext.FalsePredicate) {
+        System.out.println(semanticContext);
+        if (semanticContext.equals(SemanticContext.EMPTY_SEMANTIC_CONTEXT)) {
+          System.out.println("But it equals the empty one!");
+        }
+        System.out.println(semanticContext.getClass().getName());
+      }
+            if (semanticContext.equals(SemanticContext.EMPTY_SEMANTIC_CONTEXT)) {
+                semanticContext = new SemanticContext.Predicate(
+                        SemanticContext.Predicate.INVALID_PRED_VALUE, ref.arguments);
+                //System.out.println("Setting args on semanticContext: " + semanticContext);
+            } else {
+                //System.out.println("semanticContext isn't empty... I think we've seen it before so we ignore it?");
+                //System.out.println(semanticContext);
+            }
+
 			// first create a new context and push onto call tree,
 			// recording the fact that we are invoking a rule and
 			// from which state (case 2 below will get the following state
@@ -1677,7 +1693,7 @@ public class NFAToDFAConverter {
 		for (int i = 0; i < predConfigsSortedByAlt.size(); i++) {
 			NFAConfiguration c = predConfigsSortedByAlt.get(i);
 			DFAState predDFATarget = d.dfa.getAcceptState(c.alt);
-			if ( predDFATarget==null ) {
+			if ( predDFATarget == null ) {
 				predDFATarget = dfa.newState(); // create if not there.
 				// create a new DFA state that is a target of the predicate from d
 				predDFATarget.addNFAConfiguration(dfa.nfa.getState(c.state),
@@ -1696,6 +1712,11 @@ public class NFAToDFAConverter {
 				}
 			}
 			// add a transition to pred target from d
+      if ("".equals(c.semanticContext.toString())) {
+        System.out.println("Creating predicate transition that's empty!");
+        System.out.println(c);
+        System.out.println(predDFATarget);
+      }
 			d.addTransition(predDFATarget, new PredicateLabel(c.semanticContext));
 		}
 	}

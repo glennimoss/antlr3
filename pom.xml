@@ -27,10 +27,10 @@
 
         <module>runtime/Java</module>
         <module>tool</module>
-        <module>antlr3-maven-plugin</module>
-        <module>gunit</module>
-        <module>gunit-maven-plugin</module>
-        <module>antlr3-maven-archetype</module>
+        <!--<module>antlr3-maven-plugin</module>-->
+        <!--<module>gunit</module>-->
+        <!--<module>gunit-maven-plugin</module>-->
+        <!--<module>antlr3-maven-archetype</module>-->
     </modules>
 
   <!--

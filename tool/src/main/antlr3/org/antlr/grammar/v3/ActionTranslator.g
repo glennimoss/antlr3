@@ -53,6 +53,7 @@ int outerAltNum;
 Grammar grammar;
 CodeGenerator generator;
 Token actionToken;
+List<ST> hoistingRuleArguments;
 
 	public ActionTranslator(CodeGenerator generator,
 								 String ruleName,
@@ -78,6 +79,20 @@ Token actionToken;
 	    this.actionToken = actionToken;
 		this.outerAltNum = outerAltNum;
 	}
+
+	public ActionTranslator(CodeGenerator generator,
+                          String sourceRuleName,
+                          GrammarAST actionAST,
+                          String hoistingRuleName,
+                          GrammarAST hoistingRuleArguments
+                          )
+	{
+    this(generator, sourceRuleName, actionAST);
+    if (hoistingRuleArguments != null) {
+      this.hoistingRuleArguments =
+        generator.translateArgAction(hoistingRuleName, hoistingRuleArguments);
+    }
+  }
 
 /** Return a list of strings and ST objects that
  *  represent the translated action.
@@ -521,12 +536,26 @@ SET_LOCAL_ATTR
 		}
 	;
 LOCAL_ATTR
-	:	'$' ID {enclosingRule!=null && enclosingRule.getLocalAttributeScope($ID.text)!=null}?
+	:	'$' ID {this.hoistingRuleArguments != null ||
+            (enclosingRule!=null && enclosingRule.getLocalAttributeScope($ID.text)!=null)}?
 		//{System.out.println("found \$localattr");}
 		{
 		ST st;
 		AttributeScope scope = enclosingRule.getLocalAttributeScope($ID.text);
-		if ( scope.isPredefinedRuleScope ) {
+    if (this.hoistingRuleArguments != null) {
+      if (scope == null || !scope.isParameterScope) {
+				ErrorManager.grammarError(ErrorManager.MSG_HOISTED_VAR_NOT_PARAMETER,
+										 grammar,
+										 $ID,
+										 actionToken.getText(),
+                     $text);
+      } else {
+        Attribute localAttr = scope.getAttribute($ID.text);
+        ST substituteArg = this.hoistingRuleArguments.get(localAttr.order);
+        st = template("evalPredicate");
+        st.add("pred", substituteArg);
+      }
+    } else if ( scope.isPredefinedRuleScope ) {
 			st = template("rulePropertyRef_"+$ID.text);
 			grammar.referenceRuleLabelPredefinedAttribute(enclosingRule.name);
 			st.add("scope", enclosingRule.name);
@@ -605,10 +634,10 @@ ERROR_SCOPED_XY
 		chunks.add(getText());
 		generator.issueInvalidScopeError($x.text,$y.text,
 		                                 enclosingRule,actionToken,
-		                                 outerAltNum);		
+		                                 outerAltNum);
 		}
 	;
-	
+
 /**		To access deeper (than top of stack) scopes, use the notation:
  *
  * 		$x[-1]::y previous (just under top of stack)
@@ -625,25 +654,25 @@ DYNAMIC_NEGATIVE_INDEXED_SCOPE_ATTR
 		st.add("scope",    $x.text);
 		st.add("attr",     resolveDynamicScope($x.text).getAttribute($y.text));
 		st.add("negIndex", $expr.text);
-		}		
+		}
 	;
 
 DYNAMIC_ABSOLUTE_INDEXED_SCOPE_ATTR
-	:	'$' x=ID '[' expr=SCOPE_INDEX_EXPR ']' '::' y=ID 
+	:	'$' x=ID '[' expr=SCOPE_INDEX_EXPR ']' '::' y=ID
 		// {System.out.println("found \$scope[...]::attr");}
 		{
 		ST st = template("scopeAttributeRef");
 		st.add("scope", $x.text);
 		st.add("attr",  resolveDynamicScope($x.text).getAttribute($y.text));
 		st.add("index", $expr.text);
-		}		
+		}
 	;
 
 fragment
 SCOPE_INDEX_EXPR
 	:	(~']')+
 	;
-	
+
 /** $r		y is a rule's dynamic scope or a global shared scope.
  * 			Isolated $rulename is not allowed unless it has a dynamic scope *and*
  * 			there is no reference to rulename in the enclosing alternative,
@@ -655,9 +684,9 @@ ISOLATED_DYNAMIC_SCOPE
 		{
 		ST st = template("isolatedDynamicScopeRef");
 		st.add("scope", $ID.text);
-		}		
+		}
 	;
-	
+
 // antlr.g then codegen.g does these first two currently.
 // don't want to duplicate that code.
 
@@ -714,7 +743,7 @@ SET_EXPR_ATTRIBUTE
 		st.add("expr", translateAction($expr.text));
 		}
 	;
-	
+
 /*    %x.y = z; set template attribute y of x (always set never get attr)
  *              to z [languages like python without ';' must still use the
  *              ';' which the code generator is free to remove during code gen]
@@ -735,7 +764,7 @@ fragment
 ATTR_VALUE_EXPR
 	:	~'=' (~';')*
 	;
-	
+
 /** %{string-expr} anonymous template from string expr */
 TEMPLATE_EXPR
 	:	'%' a=ACTION
@@ -747,16 +776,16 @@ TEMPLATE_EXPR
 		st.add("stringExpr", translateAction(action));
 		}
 	;
-	
+
 fragment
 ACTION
 	:	'{' (options {greedy=false;}:.)* '}'
 	;
-	
+
 ESC :   '\\' '$' {chunks.add("\$");}
 	|	'\\' '%' {chunks.add("\%");}
 	|	'\\' ~('$'|'%') {chunks.add(getText());}
-    ;       
+    ;
 
 ERROR_XY
 	:	'$' x=ID '.' y=ID
@@ -767,7 +796,7 @@ ERROR_XY
 		                                     outerAltNum);
 		}
 	;
-	
+
 ERROR_X
 	:	'$' x=ID
 		{
@@ -777,7 +806,7 @@ ERROR_X
 		                                     outerAltNum);
 		}
 	;
-	
+
 UNKNOWN_SYNTAX
 	:	'$'
 		{
@@ -796,7 +825,7 @@ UNKNOWN_SYNTAX
 
 TEXT:	~('$'|'%'|'\\')+ {chunks.add(getText());}
 	;
-	
+
 fragment
 ID  :   ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'_'|'0'..'9')*
     ;

@@ -28,6 +28,7 @@
 package org.antlr.analysis;
 
 import org.antlr.tool.Rule;
+import org.antlr.tool.GrammarAST;
 
 /** A transition used to reference another rule.  It tracks two targets
  *  really: the actual transition target and the state following the
@@ -42,13 +43,31 @@ public class RuleClosureTransition extends Transition {
 	/** What node to begin computations following ref to rule */
     public NFAState followState;
 
+    public GrammarAST arguments;
+
     public RuleClosureTransition(Rule rule,
+                                 GrammarAST arguments,
 								 NFAState ruleStart,
 								 NFAState followState)
     {
         super(Label.EPSILON, ruleStart);
         this.rule = rule;
+        this.arguments = arguments;
         this.followState = followState;
 	}
+
+	@Override
+    public String toString() {
+        StringBuffer buf = new StringBuffer();
+        buf.append(this.rule.name);
+        if (this.arguments != null) {
+            buf.append("[");
+            buf.append(this.arguments);
+            buf.append("]");
+        }
+        buf.append("->");
+        buf.append(target.stateNumber);
+        return buf.toString();
+    }
 }
 

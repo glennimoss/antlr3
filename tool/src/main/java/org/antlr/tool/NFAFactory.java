@@ -230,13 +230,13 @@ public class NFAFactory {
      *
      *  TODO add to codegen: collapse alt blks that are sets into single matchSet
      */
-    public StateCluster build_RuleRef(Rule refDef, NFAState ruleStart) {
+    public StateCluster build_RuleRef(Rule refDef, GrammarAST args, NFAState ruleStart) {
         //System.out.println("building ref to rule "+nfa.grammar.name+"."+refDef.name);
         NFAState left = newState();
         // left.setDescription("ref to "+ruleStart.getDescription());
         NFAState right = newState();
         // right.setDescription("NFAState following ref to "+ruleStart.getDescription());
-        Transition e = new RuleClosureTransition(refDef,ruleStart,right);
+        Transition e = new RuleClosureTransition(refDef, args, ruleStart, right);
         left.addTransition(e);
         StateCluster g = new StateCluster(left, right);
         return g;
@@ -523,7 +523,7 @@ public class NFAFactory {
 		// turn A's block end into a loopback (acts like alt 2)
 		transitionBetweenStates(A.right, A.left, Label.EPSILON); // loop back Transition 2
 		transitionBetweenStates(left, A.left, Label.EPSILON);
-		
+
 		A.right.decisionStateType = NFAState.LOOPBACK;
 		A.left.decisionStateType = NFAState.BLOCK_START;
 

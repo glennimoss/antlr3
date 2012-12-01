@@ -181,6 +181,7 @@ public class ErrorManager {
     public static final int MSG_CONFLICTING_OPTION_IN_TREE_FILTER = 167;
 	public static final int MSG_ILLEGAL_OPTION_VALUE = 168;
 	public static final int MSG_ALL_OPS_NEED_SAME_ASSOC = 169;
+    public static final int MSG_HOISTED_VAR_NOT_PARAMETER = 170;
 
 	// GRAMMAR WARNINGS
 	public static final int MSG_GRAMMAR_NONDETERMINISM = 200; // A predicts alts 1,2

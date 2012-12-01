@@ -930,6 +930,16 @@ public class CodeGenerator {
 		return chunks;
 	}
 
+	public List<? extends Object> translateHoistedAction(String sourceRuleName, GrammarAST actionTree,
+            String hoistingRuleName, GrammarAST arguments)
+	{
+		ActionTranslator translator = new ActionTranslator(this, sourceRuleName, actionTree,
+                hoistingRuleName, arguments);
+		List<Object> chunks = translator.translateToChunks();
+		chunks = target.postProcessAction(chunks, actionTree.token);
+		return chunks;
+	}
+
 	/** Translate an action like [3,"foo",a[3]] and return a List of the
 	 *  translated actions.  Because actions are themselves translated to a list
 	 *  of chunks, must cat together into a ST>.  Don't translate

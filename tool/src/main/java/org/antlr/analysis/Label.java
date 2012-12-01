@@ -41,7 +41,7 @@ public class Label implements Comparable<Label>, Cloneable {
     public static final int INVALID = -7;
 
 	public static final int ACTION = -6;
-	
+
 	public static final int EPSILON = -5;
 
     public static final String EPSILON_STR = "<EPSILON>";
@@ -331,6 +331,8 @@ public class Label implements Comparable<Label>, Cloneable {
         switch (label) {
             case SET :
                 return labelSet.toString();
+            case EPSILON:
+                return EPSILON_STR;
             default :
                 return String.valueOf(label);
         }

@@ -44,6 +44,9 @@ public class Attribute {
 	/** The optional attribute intialization expression */
 	public String initValue;
 
+    /** This attribute's order in the declaration of all attributes in the same scope */
+    public int order;
+
 	public Attribute(String decl) {
 		extractAttribute(decl);
 	}
@@ -51,6 +54,11 @@ public class Attribute {
 	public Attribute(String name, String decl) {
 		this.name = name;
 		this.decl = decl;
+	}
+
+	public Attribute(String decl, int order) {
+        this(decl);
+        this.order = order;
 	}
 
 	/** For decls like "String foo" or "char *foo32[3]" compute the ID
