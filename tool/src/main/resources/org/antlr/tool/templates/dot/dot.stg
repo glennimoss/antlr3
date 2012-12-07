@@ -30,8 +30,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-containerGraph(name, subgraphs) ::= <<
+containerGraph(name, subgraphs,rankdir) ::= <<
 digraph <name> {
+  <if(rankdir)>rankdir=<rankdir>;<endif>
   <subgraphs; separator="\n">
 }
 >>

@@ -66,6 +66,7 @@ public class DOTGenerator {
     public String getAllNFADOT () {
         ST graph = stlib.getInstanceOf("containerGraph");
         graph.add("name", "AllNFAs");
+        graph.add("rankdir", this.rankdir);
         for (Rule r : this.grammar.getRules() ) {
             ST sg = this.getDOT(r.startState, "sub", "r_" + r.name);
             sg.add("graphName", "cluster_rule_" + r.name);
@@ -78,6 +79,7 @@ public class DOTGenerator {
     public String getAllDFADOT () {
         ST graph = stlib.getInstanceOf("containerGraph");
         graph.add("name", "AllDFAs");
+        graph.add("rankdir", this.rankdir);
         for (int i=1; i<= this.grammar.getNumberOfDecisions(); i++) {
             DFA dfa = this.grammar.getLookaheadDFA(i);
             ST sg = this.getDOT(dfa.startState, "sub", "d" + dfa.decisionNumber);
