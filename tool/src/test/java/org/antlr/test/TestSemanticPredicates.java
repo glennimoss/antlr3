@@ -40,11 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class TestSemanticPredicates extends BaseTest {
-
-	/** Public default constructor used by TestRig */
-	public TestSemanticPredicates() {
-	}
+public class TestSemanticPredicates extends SemanticPredicateBaseTest {
 
 	@Test public void testPredsButSyntaxResolves() throws Exception {
 		Grammar g = new Grammar(
@@ -120,7 +116,7 @@ public class TestSemanticPredicates extends BaseTest {
 			"a : {p1}? {p1a}? A | {p2}? A ;");
 		String expecting =
 			".s0-A->.s1\n" +
-			".s1-{(p1a&&p1)}?->:s2=>1\n" +
+			".s1-{(p1a)&&(p1)}?->:s2=>1\n" +
 			".s1-{p2}?->:s3=>2\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
 	}
@@ -133,7 +129,7 @@ public class TestSemanticPredicates extends BaseTest {
 			"b : {p1}? A | {p1a}? A ;");
 		String expecting =
 			".s0-A->.s1\n" +
-            ".s1-{(p1a||p1)}?->:s2=>1\n" +
+            ".s1-{(p1a)||(p1)}?->:s2=>1\n" +
             ".s1-{p2}?->:s3=>2\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
 	}
@@ -169,22 +165,6 @@ public class TestSemanticPredicates extends BaseTest {
 		checkDecision(g, 1, expecting, null,
 					  null, null, null, null, 0, true);
 	}
-
-	/*
-	@Test public void testIncompleteSemanticHoistedContextk2() throws Exception {
-		ErrorQueue equeue = new ErrorQueue();
-		ErrorManager.setErrorListener(equeue);
-		Grammar g = new Grammar(
-			"parser grammar t;\n"+
-			"a : b | A B;\n" +
-			"b : {p1}? A B | A B ;");
-		String expecting =
-			".s0-A->.s1\n" +
-			".s1-B->:s2=>1\n";
-		checkDecision(g, 1, expecting, new int[] {2},
-					  new int[] {1,2}, "A B", new int[] {1}, null, 3);
-	}
-	 */
 
 	@Test public void testHoist2() throws Exception {
 		Grammar g = new Grammar(
@@ -310,7 +290,7 @@ public class TestSemanticPredicates extends BaseTest {
 			".s0-A->.s1\n" +
 			".s1-B->:s2=>1\n" +
 			".s1-C->:s3=>2\n" +
-			".s1-{!((p3||p2))}?->:s5=>4\n" +
+			".s1-{!((p3)||(p2))}?->:s5=>4\n" +
 			".s1-{p2}?->:s4=>3\n" +
 			".s1-{p3}?->:s6=>5\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
@@ -443,10 +423,10 @@ public class TestSemanticPredicates extends BaseTest {
 			"B : {p}? => 'a' ;\n" +
 			"C : {q}? => ('a'|'b')+ ;");
 		String expecting =
-			".s0-'a'&&{(q||p)}?->.s1\n" +
+			".s0-'a'&&{(q)||(p)}?->.s1\n" +
             ".s0-'b'&&{q}?->:s4=>2\n" +
             ".s1-'a'..'b'&&{q}?->:s4=>2\n" +
-            ".s1-<EOT>&&{(q||p)}?->.s2\n" +
+            ".s1-<EOT>&&{(q)||(p)}?->.s2\n" +
             ".s2-{p}?->:s3=>1\n" +
             ".s2-{q}?->:s4=>2\n";
 		checkDecision(g, 2, expecting, null, null, null, null, null, 0, false);
@@ -473,12 +453,12 @@ public class TestSemanticPredicates extends BaseTest {
 			"A : {p}?=> ('a')+ 'x' ;\n" +
 			"B : {q}?=> ('a'|'b')+ 'x' ;");
 		String expecting =
-			".s0-'a'&&{(q||p)}?->.s1\n" +
+			".s0-'a'&&{(q)||(p)}?->.s1\n" +
             ".s0-'b'&&{q}?->:s5=>2\n" +
-            ".s1-'a'&&{(q||p)}?->.s1\n" +
+            ".s1-'a'&&{(q)||(p)}?->.s1\n" +
             ".s1-'b'&&{q}?->:s5=>2\n" +
-            ".s1-'x'&&{(q||p)}?->.s2\n" +
-            ".s2-<EOT>&&{(q||p)}?->.s3\n" +
+            ".s1-'x'&&{(q)||(p)}?->.s2\n" +
+            ".s2-<EOT>&&{(q)||(p)}?->.s3\n" +
             ".s3-{p}?->:s4=>1\n" +
             ".s3-{q}?->:s5=>2\n";
 		checkDecision(g, 3, expecting, null, null, null, null, null, 0, false);
@@ -531,7 +511,7 @@ public class TestSemanticPredicates extends BaseTest {
 			"  ;\n");
 		String expecting =
 			".s0-B->.s1\n" +
-			".s0-C&&{(r&&q)}?->:s3=>2\n" +
+			".s0-C&&{(r)&&(q)}?->:s3=>2\n" +
 			".s1-{p}?->:s2=>1\n" +
 			".s1-{q}?->:s3=>2\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
@@ -548,8 +528,8 @@ public class TestSemanticPredicates extends BaseTest {
 			"  ;\n");
 		String expecting =
 			".s0-B->.s1\n" +
-			".s0-C&&{(r&&q)}?->:s3=>2\n" +
-			".s1-{(s&&q)}?->:s3=>2\n" +
+			".s0-C&&{(r)&&(q)}?->:s3=>2\n" +
+			".s1-{(s)&&(q)}?->:s3=>2\n" +
 			".s1-{p}?->:s2=>1\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
 	}
@@ -677,15 +657,7 @@ public class TestSemanticPredicates extends BaseTest {
 			".s0-'x'->.s1\n" +
 			".s1-{p1}?->:s2=>1\n" +
 			".s1-{p2}?->:s3=>2\n";
-		int[] unreachableAlts = null;
-		int[] nonDetAlts = null;
-		String ambigInput = null;
-		int[] insufficientPredAlts = null;
-		int[] danglingAlts = null;
-		int numWarnings = 0;
-		checkDecision(g, 3, expecting, unreachableAlts,
-					  nonDetAlts, ambigInput, insufficientPredAlts,
-					  danglingAlts, numWarnings, false);
+		checkDecision(g, 3, expecting, null, null, null, null, null, 0, false);
 	}
 
 	@Test public void testPredWithArbitraryLookahead() throws Exception {
@@ -700,15 +672,7 @@ public class TestSemanticPredicates extends BaseTest {
 			".s1-'x'->.s1\n" +
 			".s2-{p1}?->:s3=>1\n" +
 			".s2-{p2}?->:s4=>2\n";
-		int[] unreachableAlts = null;
-		int[] nonDetAlts = null;
-		String ambigInput = null;
-		int[] insufficientPredAlts = null;
-		int[] danglingAlts = null;
-		int numWarnings = 0;
-		checkDecision(g, 3, expecting, unreachableAlts,
-					  nonDetAlts, ambigInput, insufficientPredAlts,
-					  danglingAlts, numWarnings, false);
+		checkDecision(g, 3, expecting, null, null, null, null, null, 0, false);
 	}
 
 	@Test
@@ -732,17 +696,9 @@ public class TestSemanticPredicates extends BaseTest {
 			"  ;\n");
 		String expecting =
 			".s0-X->.s1\n" +
-            ".s1-{((b||a)&&c)}?->:s2=>1\n" +
+            ".s1-{((b)||(a))&&(c)}?->:s2=>1\n" +
             ".s1-{c}?->:s3=>2\n";
-		int[] unreachableAlts = null;
-		int[] nonDetAlts = null;
-		String ambigInput = null;
-		int[] insufficientPredAlts = null;
-		int[] danglingAlts = null;
-		int numWarnings = 0;
-		checkDecision(g, 3, expecting, unreachableAlts,
-					  nonDetAlts, ambigInput, insufficientPredAlts,
-					  danglingAlts, numWarnings, false);
+		checkDecision(g, 3, expecting, null, null, null, null, null, 0, false);
 	}
 
     @Test
@@ -759,175 +715,8 @@ public class TestSemanticPredicates extends BaseTest {
 		String expecting =
 			".s0-ID->.s1\n" +
             ".s1-SEMI->.s2\n" +
-            ".s2-{(for||do||while)}?->:s3=>1\n" +
+            ".s2-{(for)||(do)||(while)}?->:s3=>1\n" +
             ".s2-{true}?->:s4=>2\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
-	}
-
-	// S U P P O R T
-
-	public void _template() throws Exception {
-		Grammar g = new Grammar(
-			"parser grammar t;\n"+
-			"a : A | B;");
-		String expecting =
-			"\n";
-		int[] unreachableAlts = null;
-		int[] nonDetAlts = new int[] {1,2};
-		String ambigInput = "L ID R";
-		int[] insufficientPredAlts = new int[] {1};
-		int[] danglingAlts = null;
-		int numWarnings = 1;
-		checkDecision(g, 1, expecting, unreachableAlts,
-					  nonDetAlts, ambigInput, insufficientPredAlts,
-					  danglingAlts, numWarnings, false);
-	}
-
-	protected void checkDecision(Grammar g,
-								 int decision,
-								 String expecting,
-								 int[] expectingUnreachableAlts,
-								 int[] expectingNonDetAlts,
-								 String expectingAmbigInput,
-								 int[] expectingInsufficientPredAlts,
-								 int[] expectingDanglingAlts,
-								 int expectingNumWarnings,
-								 boolean hasPredHiddenByAction)
-		throws Exception
-	{
-		DecisionProbe.verbose=true; // make sure we get all error info
-		ErrorQueue equeue = new ErrorQueue();
-		ErrorManager.setErrorListener(equeue);
-		CodeGenerator generator = new CodeGenerator(newTool(), g, "Java");
-		g.setCodeGenerator(generator);
-		// mimic actions of org.antlr.Tool first time for grammar g
-		if ( g.getNumberOfDecisions()==0 ) {
-			g.buildNFA();
-			g.createLookaheadDFAs(false);
-		}
-
-		if ( equeue.size()!=expectingNumWarnings ) {
-			System.err.println("Warnings issued: "+equeue);
-		}
-
-		assertEquals("unexpected number of expected problems",
-				   expectingNumWarnings, equeue.size());
-
-		DFA dfa = g.getLookaheadDFA(decision);
-		FASerializer serializer = new FASerializer(g);
-		String result = serializer.serialize(dfa.startState);
-		//System.out.print(result);
-		List<Integer> unreachableAlts = dfa.getUnreachableAlts();
-
-		// make sure unreachable alts are as expected
-		if ( expectingUnreachableAlts!=null ) {
-			BitSet s = new BitSet();
-			s.addAll(expectingUnreachableAlts);
-			BitSet s2 = new BitSet();
-			s2.addAll(unreachableAlts);
-			assertEquals("unreachable alts mismatch", s, s2);
-		}
-		else {
-			assertEquals("unreachable alts mismatch", 0,
-						 unreachableAlts!=null?unreachableAlts.size():0);
-		}
-
-		// check conflicting input
-		if ( expectingAmbigInput!=null ) {
-			// first, find nondet message
-			Message msg = getNonDeterminismMessage(equeue.warnings);
-			assertNotNull("no nondeterminism warning?", msg);
-			assertTrue("expecting nondeterminism; found "+msg.getClass().getName(),
-			msg instanceof GrammarNonDeterminismMessage);
-			GrammarNonDeterminismMessage nondetMsg =
-				getNonDeterminismMessage(equeue.warnings);
-			List<Label> labels =
-				nondetMsg.probe.getSampleNonDeterministicInputSequence(nondetMsg.problemState);
-			String input = nondetMsg.probe.getInputSequenceDisplay(labels);
-			assertEquals(expectingAmbigInput, input);
-		}
-
-		// check nondet alts
-		if ( expectingNonDetAlts!=null ) {
-			GrammarNonDeterminismMessage nondetMsg =
-				getNonDeterminismMessage(equeue.warnings);
-			assertNotNull("found no nondet alts; expecting: "+
-										str(expectingNonDetAlts), nondetMsg);
-			List<Integer> nonDetAlts =
-				nondetMsg.probe.getNonDeterministicAltsForState(nondetMsg.problemState);
-			// compare nonDetAlts with expectingNonDetAlts
-			BitSet s = new BitSet();
-			s.addAll(expectingNonDetAlts);
-			BitSet s2 = new BitSet();
-			s2.addAll(nonDetAlts);
-			assertEquals("nondet alts mismatch", s, s2);
-			assertEquals("mismatch between expected hasPredHiddenByAction", hasPredHiddenByAction,
-						 nondetMsg.problemState.dfa.hasPredicateBlockedByAction);
-		}
-		else {
-			// not expecting any nondet alts, make sure there are none
-			GrammarNonDeterminismMessage nondetMsg =
-				getNonDeterminismMessage(equeue.warnings);
-			assertNull("found nondet alts, but expecting none", nondetMsg);
-		}
-
-		if ( expectingInsufficientPredAlts!=null ) {
-			GrammarInsufficientPredicatesMessage insuffPredMsg =
-				getGrammarInsufficientPredicatesMessage(equeue.warnings);
-			assertNotNull("found no GrammarInsufficientPredicatesMessage alts; expecting: "+
-										str(expectingNonDetAlts), insuffPredMsg);
-			Map<Integer, Set<Token>> locations = insuffPredMsg.altToLocations;
-			Set<Integer> actualAlts = locations.keySet();
-			BitSet s = new BitSet();
-			s.addAll(expectingInsufficientPredAlts);
-			BitSet s2 = new BitSet();
-			s2.addAll(actualAlts);
-			assertEquals("mismatch between insufficiently covered alts", s, s2);
-			assertEquals("mismatch between expected hasPredHiddenByAction", hasPredHiddenByAction,
-						 insuffPredMsg.problemState.dfa.hasPredicateBlockedByAction);
-		}
-		else {
-			// not expecting any nondet alts, make sure there are none
-			GrammarInsufficientPredicatesMessage nondetMsg =
-				getGrammarInsufficientPredicatesMessage(equeue.warnings);
-			if ( nondetMsg!=null ) {
-				System.out.println(equeue.warnings);
-			}
-			assertNull("found insufficiently covered alts, but expecting none", nondetMsg);
-		}
-
-		assertEquals(expecting, result);
-	}
-
-	protected GrammarNonDeterminismMessage getNonDeterminismMessage(List<? extends Message> warnings) {
-		for (int i = 0; i < warnings.size(); i++) {
-			Message m = warnings.get(i);
-			if ( m instanceof GrammarNonDeterminismMessage ) {
-				return (GrammarNonDeterminismMessage)m;
-			}
-		}
-		return null;
-	}
-
-	protected GrammarInsufficientPredicatesMessage getGrammarInsufficientPredicatesMessage(List<? extends Message> warnings) {
-		for (int i = 0; i < warnings.size(); i++) {
-			Message m = warnings.get(i);
-			if ( m instanceof GrammarInsufficientPredicatesMessage ) {
-				return (GrammarInsufficientPredicatesMessage)m;
-			}
-		}
-		return null;
-	}
-
-	protected String str(int[] elements) {
-		StringBuilder buf = new StringBuilder();
-		for (int i = 0; i < elements.length; i++) {
-			if ( i>0 ) {
-				buf.append(", ");
-			}
-			int element = elements[i];
-			buf.append(element);
-		}
-		return buf.toString();
 	}
 }

@@ -280,8 +280,7 @@ public class CodeGenerator {
 	public ST genRecognizer() {
 		//System.out.println("### generate "+grammar.name+" recognizer");
 		// LOAD OUTPUT TEMPLATES
-		loadTemplates(language);
-		if ( templates==null ) {
+		if (getTemplates() == null) {
 			return null;
 		}
 
@@ -647,6 +646,10 @@ public class CodeGenerator {
 			if ( description!=null ) {
 				decisionST.add("description", description);
 			}
+			AttributeScope parameterScope = dfa.getNFADecisionStartState().enclosingRule.parameterScope;
+			if (parameterScope != null && parameterScope.size() > 0) {
+				decisionST.add("parameters", parameterScope);
+			}
 			decisionST.add("decisionNumber",
 						   Utils.integer(dfa.getDecisionNumber()));
 		}
@@ -741,7 +744,7 @@ public class CodeGenerator {
 		DFA dfa = ((DFAState)edge.target).dfa; // which DFA are we in
 		Label label = edge.label;
 		SemanticContext semCtx = label.getSemanticContext();
-		return semCtx.genExpr(this,templates,dfa);
+		return semCtx.genExpr(this, templates, dfa);
 	}
 
 	/** For intervals such as [3..3, 30..35], generate an expression that
@@ -1245,6 +1248,9 @@ public class CodeGenerator {
 	// M I S C
 
 	public STGroup getTemplates() {
+		if (templates == null) {
+			loadTemplates(language);
+		}
 		return templates;
 	}
 

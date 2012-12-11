@@ -183,6 +183,17 @@ protected ST template(String name) {
 	return st;
 }
 
+protected void translateHoistedRuleArgument (AttributeScope scope, Token parameterToken, String completeText) {
+    if (scope == null || !scope.isParameterScope) {
+        ErrorManager.grammarError(ErrorManager.MSG_HOISTED_VAR_NOT_PARAMETER,
+                grammar, parameterToken, actionToken.getText(), completeText);
+    } else {
+        Attribute localAttr = scope.getAttribute(parameterToken.getText());
+        String substituteArg = this.hoistingRuleArguments.get(localAttr.order);
+        ST st = template("evalPredicateGroup");
+        st.add("pred", substituteArg);
+    }
+}
 
 }
 
@@ -252,7 +263,9 @@ ENCLOSING_RULE_SCOPE_ATTR
 		}
 		ST st = null;
 		AttributeScope scope = enclosingRule.getLocalAttributeScope($y.text);
-		if ( scope.isPredefinedRuleScope ) {
+        if (this.hoistingRuleArguments != null) {
+            translateHoistedRuleArgument(scope, $y, $text);
+        } else if ( scope.isPredefinedRuleScope ) {
 			st = template("rulePropertyRef_"+$y.text);
 			grammar.referenceRuleLabelPredefinedAttribute($x.text);
 			st.add("scope", $x.text);
@@ -540,15 +553,7 @@ LOCAL_ATTR
 		ST st;
 		AttributeScope scope = enclosingRule.getLocalAttributeScope($ID.text);
         if (this.hoistingRuleArguments != null) {
-          if (scope == null || !scope.isParameterScope) {
-              ErrorManager.grammarError(ErrorManager.MSG_HOISTED_VAR_NOT_PARAMETER,
-                      grammar, $ID, actionToken.getText(), $text);
-          } else {
-              Attribute localAttr = scope.getAttribute($ID.text);
-              String substituteArg = this.hoistingRuleArguments.get(localAttr.order);
-              st = template("evalPredicate");
-              st.add("pred", substituteArg);
-          }
+          translateHoistedRuleArgument(scope, $ID, $text);
         } else if ( scope.isPredefinedRuleScope ) {
 			st = template("rulePropertyRef_"+$ID.text);
 			grammar.referenceRuleLabelPredefinedAttribute(enclosingRule.name);

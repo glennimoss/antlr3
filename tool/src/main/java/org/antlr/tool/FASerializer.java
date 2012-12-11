@@ -169,8 +169,7 @@ public class FASerializer {
 						((DFAState)edge.target).getGatedPredicatesInNFAConfigurations();
 					if ( preds!=null ) {
 						predsStr = "&&{"+
-							preds.genExpr(grammar.generator,
-									   	  grammar.generator.getTemplates(), null).render()
+							preds.genExpr(grammar.generator, null, null).render()
 							+"}?";
 					}
 				}

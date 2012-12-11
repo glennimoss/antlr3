@@ -754,7 +754,7 @@ public class NFAToDFAConverter {
                             if (call.arguments == null) {
                                 break;
                             }
-                            pred = new SemanticContext.HoistedPredicate(pred, call.arguments);
+                            pred = new SemanticContext.HoistedPredicate(pred, call.arguments, dfa.nfa.grammar);
                             callChain = callChain.parent;
                         }
 

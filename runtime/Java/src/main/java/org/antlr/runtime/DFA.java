@@ -62,6 +62,12 @@ public class DFA {
 	public int predict(IntStream input)
 		throws RecognitionException
 	{
+		return predict(input, null);
+	}
+
+	public int predict(IntStream input, Object ... args)
+		throws RecognitionException
+	{
 		if ( debug ) {
 			System.err.println("Enter DFA.predict for decision "+decisionNumber);
 		}
@@ -77,7 +83,7 @@ public class DFA {
 						System.err.println("DFA "+decisionNumber+
 							" state "+s+" is special state "+specialState);
 					}
-					s = specialStateTransition(specialState,input);
+					s = specialStateTransition(specialState, input, args);
 					if ( debug ) {
 						System.err.println("DFA "+decisionNumber+
 							" returns from special state "+specialState+" to "+s);
@@ -166,6 +172,13 @@ public class DFA {
 
 	/** A hook for debugging interface */
 	protected void error(NoViableAltException nvae) { ; }
+
+	public int specialStateTransition(int s, IntStream input, Object ... args)
+		throws NoViableAltException
+	{
+		// For legacy code
+		return specialStateTransition(s, input);
+	}
 
 	public int specialStateTransition(int s, IntStream input)
 		throws NoViableAltException

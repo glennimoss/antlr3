@@ -90,7 +90,11 @@ public abstract class BaseTest {
     @After
     public void tearDown() throws Exception {
         // remove tmpdir if no error.
-        if ( !lastTestFailed ) eraseTempDir();
+        if ( !lastTestFailed ) {
+            eraseTempDir();
+        } else {
+            System.out.println(tmpdir);
+        }
 
     }
 

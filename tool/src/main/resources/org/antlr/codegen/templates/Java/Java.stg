@@ -38,6 +38,17 @@ javaTypeInitMap ::= [
 	default:"null" // anything other than an atomic type
 ]
 
+javaPrimitiveTypeCastMap ::= [
+	"int":     "Integer",
+	"long":    "Long",
+	"float":   "Float",
+	"double":  "Double",
+	"boolean": "Boolean",
+	"byte":    "Byte",
+	"short":   "Short",
+	"char":    "Char"
+]
+
 // System.Boolean.ToString() returns "True" and "False", but the proper C# literals are "true" and "false"
 // The Java version of Boolean returns "true" and "false", so they map to themselves here.
 booleanLiteral ::= [
@@ -1033,8 +1044,8 @@ dfaEdgeSwitch(labels, targetState) ::= <<
  *  in the rule to predict an alt just like the fixed DFA case.
  *  The <name> attribute is inherited via the parser, lexer, ...
  */
-dfaDecision(decisionNumber,description) ::= <<
-alt<decisionNumber> = dfa<decisionNumber>.predict(input);
+dfaDecision(decisionNumber,description,parameters) ::= <<
+alt<decisionNumber> = dfa<decisionNumber>.predict(input<if(parameters)>, <parameters:parametersCall()><endif>);
 >>
 
 /* Dump DFA tables as run-length-encoded Strings of octal values.
@@ -1097,8 +1108,22 @@ class DFA<dfa.decisionNumber> extends DFA {
 	}
 	<@errorMethod()>
 <if(dfa.specialStateSTs)>
+    <specialStateTransition(dfa.decisionNFAStartState.enclosingRule.parameterScope)>
+<endif>
+}
+>>
+
+specialStateTransition(parameters) ::= <<
 	@Override
-	public int specialStateTransition(int s, IntStream _input) throws NoViableAltException {
+<if(parameters)>
+	public int specialStateTransition(int s, IntStream _input, Object ... args) throws NoViableAltException {
+        return _specialStateTransition(s, _input, <parameters:parametersCast("args")>);
+    }
+
+	public int _specialStateTransition(int s, IntStream _input, <parameters:parameterScope()>) throws NoViableAltException {
+<else>
+    public int specialStateTransition(int s, IntStream _input, Object ... ignored) throws NoViableAltException {
+<endif>
 		<if(LEXER)>
 		IntStream input = _input;
 		<endif>
@@ -1122,8 +1147,6 @@ class DFA<dfa.decisionNumber> extends DFA {
 		error(nvae);
 		throw nvae;
 	}
-<endif>
-}
 >>
 
 /** A state in a cyclic DFA; it's a special state and part of a big switch on
@@ -1161,13 +1184,15 @@ s = <targetStateNumber>;
 
 // D F A  E X P R E S S I O N S
 
-andPredicates(left,right) ::= "(<left>&&<right>)"
+andPredicates(left,right) ::= "(<left>)&&(<right>)"
 
-orPredicates(operands) ::= "(<first(operands)><rest(operands):{o | ||<o>}>)"
+orPredicates(operands) ::= "(<first(operands)>)<rest(operands):{o | ||(<o>)}>"
 
 notPredicate(pred) ::= "!(<evalPredicate(pred,{})>)"
 
-evalPredicate(pred,description) ::= "(<pred>)"
+evalPredicate(pred,description) ::= "<pred>"
+
+evalPredicateGroup(pred) ::= "(<pred>)"
 
 evalSynPredicate(pred,description) ::= "<pred>()"
 
@@ -1185,7 +1210,7 @@ lookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= <%
 isolatedLookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= "(input.LA(<k>) >= <lower> && input.LA(<k>) \<= <upper>)"
 
 setTest(ranges) ::= <<
-<ranges; separator="||">
+(<ranges; separator=")||(">)
 >>
 
 // A T T R I B U T E S
@@ -1269,6 +1294,14 @@ returnScopeBaseType() ::= <%
 
 parameterScope(scope) ::= <<
 <scope.attributes:{it |<it.decl>}; separator=", ">
+>>
+
+parametersCall(scope) ::= <<
+<scope.attributes:{it |<it.name>}; separator=", ">
+>>
+
+parametersCast(scope,varName) ::= <<
+<scope.attributes:{it | (<if(javaPrimitiveTypeCastMap.(it.type))><javaPrimitiveTypeCastMap.(it.type)><else><it.type><endif>)<varName>[<i0>]}; separator=", ">
 >>
 
 parameterAttributeRef(attr) ::= "<attr.name>"

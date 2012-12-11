@@ -1090,8 +1090,8 @@ dfaEdgeSwitch(labels, targetState) ::= <<
  *  in the rule to predict an alt just like the fixed DFA case.
  *  The <name> attribute is inherited via the parser, lexer, ...
  */
-dfaDecision(decisionNumber,description) ::= <<
-alt<decisionNumber> = self.dfa<decisionNumber>.predict(self.input)
+dfaDecision(decisionNumber,description,parameters) ::= <<
+alt<decisionNumber> = self.dfa<decisionNumber>.predict(self.input<if(parameters)>, <parameters:parameterScope()><endif>)
 >>
 
 /* Dump DFA tables as run-length-encoded Strings of octal values.
@@ -1142,7 +1142,7 @@ class DFA<dfa.decisionNumber>(DFA):
     <@errorMethod()>
 
 <if(dfa.specialStateSTs)>
-    def specialStateTransition(self_, s, input):
+    def specialStateTransition(self_, s, input<if(dfa.decisionNFAStartState.enclosingRule.parameterScope.attributes)>, <dfa.decisionNFAStartState.enclosingRule.parameterScope:parameterScope()><endif>):
         # convince pylint that my self_ magic is ok ;)
         # pylint: disable-msg=E0213
 

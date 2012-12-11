@@ -29,6 +29,7 @@ package org.antlr.analysis;
 
 import org.antlr.codegen.CodeGenerator;
 import org.antlr.grammar.v3.ANTLRParser;
+import org.antlr.grammar.v3.ActionTranslator;
 import org.antlr.tool.Grammar;
 import org.antlr.tool.GrammarAST;
 import org.stringtemplate.v4.ST;
@@ -207,7 +208,7 @@ public abstract class SemanticContext {
 			return eST;
 		}
 
-        protected String hoistExpr (CodeGenerator generator)
+        protected String hoistExpr (CodeGenerator generator, STGroup templates)
         {
             return this.predicateAST.getText();
         }
@@ -315,11 +316,13 @@ public abstract class SemanticContext {
     public static class HoistedPredicate extends Predicate {
         protected Predicate semPred;
         public GrammarAST arguments;
+        public Grammar grammar;
 
-        public HoistedPredicate (Predicate semPred, GrammarAST arguments) {
+        public HoistedPredicate (Predicate semPred, GrammarAST arguments, Grammar grammar) {
             super(semPred);
             this.semPred = semPred;
             this.arguments = arguments;
+            this.grammar = grammar;
         }
 
 
@@ -328,7 +331,13 @@ public abstract class SemanticContext {
                           STGroup templates,
                           DFA dfa)
         {
-            String hoistedExpr = hoistExpr(generator);
+            if (generator == null && this.grammar != null) {
+                generator = this.grammar.getCodeGenerator();
+            }
+            if (templates == null && generator != null) {
+                templates = generator.getTemplates();
+            }
+            String hoistedExpr = hoistExpr(generator, templates);
             GrammarAST actionTree = new GrammarAST();
             // Borrow all contextual info from the arguments tree.
             actionTree.initialize(this.arguments);
@@ -338,13 +347,26 @@ public abstract class SemanticContext {
         }
 
         @Override
-        protected String hoistExpr (CodeGenerator generator)
+        protected String hoistExpr (CodeGenerator generator, STGroup templates)
         {
-            String semExpr = this.semPred.hoistExpr(generator);
+            String semExpr = this.semPred.hoistExpr(generator, templates);
             String hoistedExpr;
+
             if (generator != null) {
                 hoistedExpr = generator.translateHoistedPredicate(this.semPred.getEnclosingRuleName(),
                         this.semPred.getAltNum(), semExpr, this.arguments);
+
+                // Normalize the expression. If the entire string is wrapped in
+                // grouping operators (parenthesis in most targets) remove them
+                // so we don't have unnecessary nested groupings.
+                if (templates != null) {
+                    String[] grouping = templates.getInstanceOf("evalPredicateGroup")
+                        .add("pred", "\u001f").render().split("\u001f", 2);
+                    if (hoistedExpr.startsWith(grouping[0]) && hoistedExpr.endsWith(grouping[1])) {
+                        hoistedExpr = hoistedExpr.substring(grouping[0].length(),
+                                hoistedExpr.length() - grouping[1].length());
+                    }
+                }
             } else {
                 hoistedExpr = this.toString();
             }
@@ -353,6 +375,10 @@ public abstract class SemanticContext {
 
         @Override
         public String toString() {
+            if (this.grammar != null) {
+                CodeGenerator gen = this.grammar.getCodeGenerator();
+                return this.hoistExpr(gen, gen.getTemplates());
+            }
             StringBuilder buf = new StringBuilder();
             buf.append('(');
             buf.append(this.semPred.toString());
@@ -374,18 +400,29 @@ public abstract class SemanticContext {
 
 		@Override
 		public boolean equals(Object o) {
-			if ( !(o instanceof HoistedPredicate) ) {
+			if ( !(o instanceof Predicate) ) {
 				return false;
 			}
 
-			HoistedPredicate other = (HoistedPredicate)o;
+			Predicate other = (Predicate)o;
 
-			return this.semPred.equals(other.semPred) && this.arguments.getText().equals(other.arguments.getText());
+            //String otherTxt = other.hoistExpr(null);
+            //String thisTxt = this.hoistExpr(null);
+            //return thisTxt.equals(otherTxt);
+            return this.toString().equals(other.toString());
+
+			//if ( !(o instanceof HoistedPredicate) ) {
+				//return false;
+			//}
+
+			//HoistedPredicate other = (HoistedPredicate)o;
+
+			//return this.semPred.equals(other.semPred) && this.arguments.getText().equals(other.arguments.getText());
 		}
 
 		@Override
 		public int hashCode() {
-			return this.toString().hashCode();
+            return this.toString().hashCode();
 		}
     }
 
@@ -506,16 +543,16 @@ public abstract class SemanticContext {
 		@Override
 		public String toString() {
 			StringBuilder buf = new StringBuilder();
-			buf.append("(");
 			int i = 0;
 			for (SemanticContext semctx : operands) {
 				if ( i>0 ) {
 					buf.append(getOperandString());
 				}
+                buf.append("(");
 				buf.append(semctx.toString());
+                buf.append(")");
 				i++;
 			}
-			buf.append(")");
 			return buf.toString();
 		}
 
@@ -552,7 +589,7 @@ public abstract class SemanticContext {
 					eST = templates.getInstanceOf("andPredicates");
 				}
 				else {
-					eST = new ST("(<left>&&<right>)");
+					eST = new ST("(<left>)&&(<right>)");
 				}
 				eST.add("left", result);
 				eST.add("right", operand.genExpr(generator,templates,dfa));
@@ -602,7 +639,7 @@ public abstract class SemanticContext {
 				eST = templates.getInstanceOf("orPredicates");
 			}
 			else {
-				eST = new ST("(<first(operands)><rest(operands):{o | ||<o>}>)");
+				eST = new ST("(<first(operands)>)<rest(operands):{o | ||(<o>)}>");
 			}
 			for (SemanticContext semctx : operands) {
 				eST.add("operands", semctx.genExpr(generator,templates,dfa));
@@ -708,7 +745,7 @@ public abstract class SemanticContext {
 
 		boolean factored = commonTerms != null && commonTerms != EMPTY_SEMANTIC_CONTEXT && !(commonTerms instanceof TruePredicate);
 		if (factored) {
-			return or(commonTerms, and(a, b));
+            return or(commonTerms, and(a, b));
 		}
 
 		//System.Console.Out.WriteLine( "AND: " + a + "&&" + b );
@@ -733,7 +770,12 @@ public abstract class SemanticContext {
 		//    return a;
 
 		//System.out.println("## have to AND");
-		return new AND(a,b);
+        AND result = new AND(a,b);
+		if (result.operands.size() == 1) {
+			return result.operands.iterator().next();
+        }
+        return result;
+        //return new AND(a,b);
 	}
 
 	public static SemanticContext or(SemanticContext a, SemanticContext b) {
@@ -747,7 +789,7 @@ public abstract class SemanticContext {
 		b = terms[2];
 		boolean factored = commonTerms != null && commonTerms != EMPTY_SEMANTIC_CONTEXT && !(commonTerms instanceof FalsePredicate);
 		if (factored) {
-			return and(commonTerms, or(a, b));
+            return and(commonTerms, or(a, b));
 		}
 
 		if ( a==EMPTY_SEMANTIC_CONTEXT || a==null || a instanceof FalsePredicate ) {
@@ -785,8 +827,7 @@ public abstract class SemanticContext {
 		OR result = new OR(a,b);
 		if (result.operands.size() == 1)
 			return result.operands.iterator().next();
-
-		return result;
+        return result;
 	}
 
 	public static SemanticContext not(SemanticContext a) {
