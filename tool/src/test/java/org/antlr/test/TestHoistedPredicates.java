@@ -572,10 +572,10 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
             "C : CC[c1];\n" +
 			"fragment CC[cc1] : {$cc1}? => ('a'|'b')+ ;");
 		String expecting =
-			".s0-'a'&&{(c1)||(b1)}?->.s1\n" +
+			".s0-'a'&&{(b1)||(c1)}?->.s1\n" +
             ".s0-'b'&&{c1}?->:s4=>2\n" +
             ".s1-'a'..'b'&&{c1}?->:s4=>2\n" +
-            ".s1-<EOT>&&{(c1)||(b1)}?->.s2\n" +
+            ".s1-<EOT>&&{(b1)||(c1)}?->.s2\n" +
             ".s2-{b1}?->:s3=>1\n" +
             ".s2-{c1}?->:s4=>2\n";
 		checkDecision(g, 2, expecting, null, null, null, null, null, 0, false);
@@ -603,12 +603,12 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
             "B : BB[b1];\n" +
 			"fragment BB[bb1] : {$bb1}?=> ('a'|'b')+ 'x' ;");
 		String expecting =
-			".s0-'a'&&{(b1)||(a1)}?->.s1\n" +
+			".s0-'a'&&{(a1)||(b1)}?->.s1\n" +
             ".s0-'b'&&{b1}?->:s5=>2\n" +
-            ".s1-'a'&&{(b1)||(a1)}?->.s1\n" +
+            ".s1-'a'&&{(a1)||(b1)}?->.s1\n" +
             ".s1-'b'&&{b1}?->:s5=>2\n" +
-            ".s1-'x'&&{(b1)||(a1)}?->.s2\n" +
-            ".s2-<EOT>&&{(b1)||(a1)}?->.s3\n" +
+            ".s1-'x'&&{(a1)||(b1)}?->.s2\n" +
+            ".s2-<EOT>&&{(a1)||(b1)}?->.s3\n" +
             ".s3-{a1}?->:s4=>1\n" +
             ".s3-{b1}?->:s5=>2\n";
 		checkDecision(g, 3, expecting, null, null, null, null, null, 0, false);

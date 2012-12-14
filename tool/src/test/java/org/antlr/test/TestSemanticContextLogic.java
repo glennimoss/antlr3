@@ -21,211 +21,286 @@ public class TestSemanticContextLogic extends BaseTest {
     Predicate baz = p("baz");
     Predicate baz3 = p("baz");
 
+
     protected Predicate p (String val) {
         return new Predicate(new GrammarAST(ANTLRParser.ACTION, val));
     }
 
-    protected Predicate[] p (String ... vals) {
-        Predicate[] preds = new Predicate[vals.length];
+    protected SemanticContext[] p (Object ... vals) {
+        SemanticContext[] preds = new SemanticContext[vals.length];
 
         for (int i=0; i < vals.length; i++) {
-            preds[i] = p(vals[i]);
+            if (vals[i] instanceof String) {
+                preds[i] = p((String)vals[i]);
+            } else {
+                preds[i] = (SemanticContext)vals[i];
+            }
         }
         return preds;
     }
 
-    protected AND ANDall (String ... terms) {
-        return ANDall(p(terms));
+    protected SemanticContext ANDall (Object ... terms) {
+        begin("ANDall " + Arrays.toString(terms));
+        SemanticContext r = and(p(terms));
+        end("-> " + r);
+        return r;
     }
 
-    protected AND ANDall (SemanticContext ... terms) {
-        return new AND(new HashSet<SemanticContext>(Arrays.asList(terms)));
+    protected SemanticContext ORall (Object ... terms) {
+        begin("ORall " + Arrays.toString(terms));
+        SemanticContext r = or(p(terms));
+        end("-> " + r);
+        return r;
     }
 
-    protected OR ORall (String ... terms) {
-        return ORall(p(terms));
+    @Test public void testNot () {
+        SemanticContext exp;
+
+        exp = not(p("a"));
+        assertEquals("!(a)", exp.toString());
+
+        exp = not(not(p("a")));
+        assertEquals("a", exp.toString());
+
+        exp = not(not(not(p("a"))));
+        assertEquals("!(a)", exp.toString());
+
+        exp = not(ANDall(not(ANDall(not(p("a"))))));
+        assertEquals("!(a)", exp.toString());
+
+        exp = not(ANDall(not(p("a")), "b", "c", "d"));
+        assertEquals("!((!(a))&&(b)&&(c)&&(d))", exp.toString());
+
+        exp = not(ANDall(not(p("a")), not(p("b")), "c", "d"));
+        assertEquals("(a)||(b)||(!(c))||(!(d))", exp.toString());
+
+        exp = not(ANDall(not(p("a")), not(p("b")), not(p("c")), "d"));
+        assertEquals("(a)||(b)||(c)||(!(d))", exp.toString());
+
+        exp = ANDall("a", not(p("b")), not(p("c")), not(p("d")));
+        assertEquals("!((b)||(c)||(d)||(!(a)))", exp.toString());
+        assertTrue(exp instanceof NOT);
+
+        exp = ANDall("a", "b", not(p("c")), not(p("d")));
+        assertEquals("(a)&&(b)&&(!(c))&&(!(d))", exp.toString());
+
+        exp = ANDall("a", "b", "c", not(p("d")));
+        assertEquals("(a)&&(b)&&(c)&&(!(d))", exp.toString());
     }
 
-    protected OR ORall (SemanticContext ... terms) {
-        return new OR(new HashSet<SemanticContext>(Arrays.asList(terms)));
+    @Test public void testAnd () {
+        SemanticContext exp;
+
+        exp = ANDall();
+        assertEquals("true", exp.toString());
+        assertTrue(exp instanceof TruePredicate);
+
+        exp = ANDall("a");
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ANDall("a", t);
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ANDall("a", f);
+        assertEquals("false", exp.toString());
+        assertTrue(exp instanceof FalsePredicate);
+
+        exp = ANDall("a", "a");
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ANDall("a", not(p("a")));
+        assertEquals("false", exp.toString());
+
+        exp = ANDall("a", ANDall("b", "c"));
+        assertEquals("(a)&&(b)&&(c)", exp.toString());
+
+        exp = ANDall("a", ANDall("a", "b"), ANDall("c", "a"));
+        assertEquals("(a)&&(b)&&(c)", exp.toString());
+
+        exp = ANDall("a", ORall("b", "c"));
+        assertEquals("(a)&&((b)||(c))", exp.toString());
+
+        exp = ANDall("a", ORall("a"), ANDall("a"), ORall(ANDall("a")));
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ANDall("a", not(ANDall("b", "c")));
+        assertEquals("(a)&&(!((b)&&(c)))", exp.toString());
+
+        exp = ANDall("a", not(ANDall(not(ANDall("b", "c", "d")), "e")));
+        assertEquals("(a)&&(((b)&&(c)&&(d))||(!(e)))", exp.toString());
+
+        exp = ANDall("a", not(ANDall(not(ORall("b", "c", "d")), "e")));
+        assertEquals("(a)&&((b)||(c)||(d)||(!(e)))", exp.toString());
+
+        exp = ANDall("a", not(ANDall(ANDall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)&&((b)||(c)||(d)||(!(e)))", exp.toString());
+
+        exp = ANDall("a", not(ANDall(ORall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)&&(((b)&&(c)&&(d))||(!(e)))", exp.toString());
+
+        exp = ANDall("a", not(ORall("b", "c")));
+        assertEquals("(a)&&(!((b)||(c)))", exp.toString());
+
+        exp = ANDall("a", not(ORall(not(ANDall("b", "c", "d")), "e")));
+        assertEquals("(a)&&(b)&&(c)&&(d)&&(!(e))", exp.toString());
+
+        exp = ANDall("a", not(ORall(not(ORall("b", "c", "d")), "e")));
+        assertEquals("(a)&&((b)||(c)||(d))&&(!(e))", exp.toString());
+
+        exp = ANDall("a", not(ORall(ANDall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)&&((b)||(c)||(d))&&(!(e))", exp.toString());
+
+        exp = ANDall("a", not(ORall(ORall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)&&(b)&&(c)&&(d)&&(!(e))", exp.toString());
+    }
+
+    @Test public void testOr () {
+        SemanticContext exp;
+
+        exp = ORall();
+        assertEquals("false", exp.toString());
+        assertTrue(exp instanceof FalsePredicate);
+
+        exp = ORall("a");
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ORall("a", t);
+        assertEquals("true", exp.toString());
+        assertTrue(exp instanceof TruePredicate);
+
+        exp = ORall("a", f);
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ORall("a", "a");
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ORall("a", not(p("a")));
+        assertEquals("true", exp.toString());
+        assertTrue(exp instanceof TruePredicate);
+
+        exp = ORall("a", ANDall("b", "c"));
+        assertEquals("(a)||((b)&&(c))", exp.toString());
+
+        exp = ORall("a", ORall("b", "c"));
+        assertEquals("(a)||(b)||(c)", exp.toString());
+
+        exp = ORall("a", ORall("a", "b"), ORall("c", "a"));
+        assertEquals("(a)||(b)||(c)", exp.toString());
+
+        exp = ORall("a", ORall("a"), ANDall("a"), ORall(ANDall("a")));
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ORall("a", not(ANDall("b", "c")));
+        assertEquals("(a)||(!((b)&&(c)))", exp.toString());
+
+        exp = ORall("a", not(ANDall(not(ANDall("b", "c", "d")), "e")));
+        assertEquals("(a)||((b)&&(c)&&(d))||(!(e))", exp.toString());
+
+        exp = ORall("a", not(ANDall(not(ORall("b", "c", "d")), "e")));
+        assertEquals("(a)||(b)||(c)||(d)||(!(e))", exp.toString());
+
+        exp = ORall("a", not(ANDall(ANDall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)||(b)||(c)||(d)||(!(e))", exp.toString());
+
+        exp = ORall("a", not(ANDall(ORall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)||((b)&&(c)&&(d))||(!(e))", exp.toString());
+
+        exp = ORall("a", not(ORall("b", "c")));
+        assertEquals("(a)||(!((b)||(c)))", exp.toString());
+
+        exp = ORall("a", not(ORall(not(ANDall("b", "c", "d")), "e")));
+        assertEquals("(a)||((b)&&(c)&&(d)&&(!(e)))", exp.toString());
+
+        exp = ORall("a", not(ORall(not(ORall("b", "c", "d")), "e")));
+        assertEquals("(a)||(((b)||(c)||(d))&&(!(e)))", exp.toString());
+
+        exp = ORall("a", not(ORall(ANDall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)||(((b)||(c)||(d))&&(!(e)))", exp.toString());
+
+        exp = ORall("a", not(ORall(ORall(not(p("b")), not(p("c")), not(p("d"))), "e")));
+        assertEquals("(a)||((b)&&(c)&&(d)&&(!(e)))", exp.toString());
+    }
+
+
+    @Test
+    public void testAndFactored () {
+        SemanticContext exp;
+
+        exp = ANDall("a", ORall("a", "b"), ORall("c", "a"));
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
+
+        exp = ANDall("a", ORall("b", ANDall("c", "a")));
+        assertEquals("(a)&&((b)||(c))", exp.toString());
+
+        exp = ANDall("a", ORall("b", ANDall("c", not(p("a")))));
+        assertEquals("(a)&&(b)", exp.toString());
+
+        exp = ANDall("a", ORall("b", ANDall("c", not(p("a")))), ORall(not(p("b")), "d"));
+        assertEquals("(a)&&(b)&&(d)", exp.toString());
+
+        exp = ANDall("a", "b", ORall("b", ANDall("c", not(p("a")))), ORall(not(p("b")), "d"));
+        assertEquals("(a)&&(b)&&(d)", exp.toString());
+
+        exp = ANDall("a", ORall("b", "c"), ORall("d", ORall("b", "c")), ORall("e",  ORall("d", ORall("b", "c"))));
+        assertEquals("(a)&&((b)||(c))", exp.toString());
+
+        exp = ANDall(not(p("a")), ORall("b", "a"));
+        assertEquals("(!(a))&&(b)", exp.toString());
+
+        exp = ANDall("a", ORall("b", "c"),
+                          ORall("d", ANDall("e", ORall("b", "c"))),
+                          ORall("f", ANDall("g", ORall("h", ORall("i", "b", "j", "c")))));
+        assertEquals("(a)&&((b)||(c))&&((d)||(e))&&((f)||(g))", exp.toString());
+
+        exp = ANDall(not(p("a")), ORall("a", "b", "c"),
+                                  ORall("d", ANDall("e", ORall("b", "c"))),
+                                  ORall("f", ANDall("g", ORall("h", ORall("i", "b", "j", "c")))));
+        assertEquals("(!(a))&&((b)||(c))&&((d)||(e))&&((f)||(g))", exp.toString());
     }
 
     @Test
-    public void testFactorAnd () {
-        SemanticContext[] rset;
+    public void testOrFactored () {
+        SemanticContext exp;
 
-        rset = factorAnd(foo, f);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == f);
+        exp = ORall("a", ANDall("a", "b"), ANDall("c", "a"));
+        assertEquals("a", exp.toString());
+        assertTrue(exp instanceof Predicate);
 
-        rset = factorAnd(foo, t);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == t);
+        exp = ORall("a", ANDall("b", ORall("c", "a")));
+        assertEquals("(a)||((b)&&(c))", exp.toString());
 
-        rset = factorAnd(foo, foo);
-        assertTrue(rset[0] == foo);
-        assertEquals(t, rset[1]);
-        assertEquals(t, rset[2]);
+        exp = ORall("a", ANDall("b", ORall("c", not(p("a")))));
+        assertEquals("(a)||(b)", exp.toString());
 
-        rset = factorAnd(foo, foo2);
-        assertEquals(foo3, rset[0]);
-        assertEquals(t, rset[1]);
-        assertEquals(t, rset[2]);
+        exp = ORall("a", ANDall("b", ORall("c", not(p("a")))), ANDall(not(p("b")), "d"));
+        assertEquals("(a)||(b)||(d)", exp.toString());
 
-        rset = factorAnd(foo, bar);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == bar);
+        exp = ORall("a", "b", ANDall("b", ORall("c", not(p("a")))), ANDall(not(p("b")), "d"));
+        assertEquals("(a)||(b)||(d)", exp.toString());
 
-        rset = factorAnd(ANDall(foo, bar), bar2);
-        assertEquals(bar3, rset[0]);
-        assertTrue(rset[1] == foo);
-        assertEquals(t, rset[2]);
+        exp = ORall("a", ANDall("b", "c"), ANDall("d", ANDall("b", "c")), ANDall("e",  ANDall("d", ANDall("b", "c"))));
+        assertEquals("(a)||((b)&&(c))", exp.toString());
 
-        SemanticContext orterm = ORall(foo, bar);
-        rset = factorAnd(orterm, bar2);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT );
-        assertTrue(rset[1] == orterm);
-        assertTrue(rset[2] == bar2);
+        exp = ORall(not(p("a")), ANDall("b", "a"));
+        assertEquals("(!(a))||(b)", exp.toString());
 
-        rset = factorAnd(ANDall(foo, bar), ANDall(foo2, bar2));
-        assertEquals(ANDall(foo3, bar3), rset[0]);
-        assertEquals(t, rset[1]);
-        assertEquals(t, rset[2]);
+        exp = ORall("a", ANDall("b", "c"),
+                         ANDall("d", ORall("e", ANDall("b", "c"))),
+                         ANDall("f", ORall("g", ANDall("h", ANDall("i", "b", "j", "c")))));
+        assertEquals("(a)||((b)&&(c))||((d)&&(e))||((f)&&(g))", exp.toString());
 
-        rset = factorAnd(ANDall(foo, bar), ANDall(foo2, bar2, baz));
-        assertEquals(ANDall(foo3, bar3), rset[0]);
-        assertEquals(t, rset[1]);
-        assertTrue(rset[2] == baz);
-    }
-
-    @Test
-    public void testFactorOr () {
-        SemanticContext[] rset;
-
-        rset = factorOr(foo, f);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == f);
-
-        rset = factorOr(foo, t);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == t);
-
-        rset = factorOr(foo, foo);
-        assertTrue(rset[0] == foo);
-        assertEquals(f, rset[1]);
-        assertEquals(f, rset[2]);
-
-        rset = factorOr(foo, foo2);
-        assertEquals(foo3, rset[0]);
-        assertEquals(f, rset[1]);
-        assertEquals(f, rset[2]);
-
-        rset = factorOr(foo, bar);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT);
-        assertTrue(rset[1] == foo);
-        assertTrue(rset[2] == bar);
-
-        rset = factorOr(ORall(foo, bar), bar2);
-        assertEquals(bar3, rset[0]);
-        assertTrue(rset[1] == foo);
-        assertEquals(f, rset[2]);
-
-        SemanticContext andterm = ANDall(foo, bar);
-        rset = factorOr(andterm, bar2);
-        assertTrue(rset[0] == EMPTY_SEMANTIC_CONTEXT );
-        assertTrue(rset[1] == andterm);
-        assertTrue(rset[2] == bar2);
-
-        rset = factorOr(ORall(foo, bar), ORall(foo2, bar2));
-        assertEquals(ORall(foo3, bar3), rset[0]);
-        assertEquals(f, rset[1]);
-        assertEquals(f, rset[2]);
-
-        rset = factorOr(ORall(foo, bar), ORall(foo2, bar2, baz));
-        assertEquals(ORall(foo3, bar3), rset[0]);
-        assertEquals(f, rset[1]);
-        assertTrue(rset[2] == baz);
-    }
-
-    @Test
-    public void testAnd () {
-        SemanticContext r;
-
-        r = and(foo, f);
-        assertFalse(r == f);
-        assertEquals(f, r);
-
-        r = and(foo, t);
-        assertTrue(r == foo);
-
-        r = and(foo, foo);
-        assertTrue(r == foo);
-
-        r = and(foo, foo2);
-        assertEquals(foo3, r);
-
-        r = and(foo, bar);
-        assertEquals(ANDall(foo3, bar3), r);
-
-        r = and(ANDall(foo, bar), bar2);
-        assertEquals(ANDall(foo3, bar3), r);
-
-        r = and(ORall(foo, bar), bar2);
-        assertEquals(bar3, r);
-
-        r = and(ANDall(foo, bar), ANDall(foo2, bar2));
-        assertEquals(ANDall(foo3, bar3), r);
-
-        r = and(ANDall(foo, bar), ANDall(foo2, bar2, baz));
-        assertEquals(r, ANDall(foo3, bar3, baz3));
-    }
-
-    @Test
-    public void testOr () {
-        SemanticContext r;
-
-        r = or(foo, f);
-        assertTrue(r == foo);
-
-        r = or(foo, t);
-        assertFalse(r == t);
-        assertEquals(t, r);
-
-        r = or(foo, foo);
-        assertTrue(r == foo);
-
-        r = or(foo, foo2);
-        assertEquals(foo3, r);
-
-        r = or(foo, bar);
-        assertEquals(ORall(foo3, bar3), r);
-
-        r = or(ORall(foo, bar), bar2);
-        assertEquals(ORall(foo3, bar3), r);
-
-        r = or(ANDall(foo, bar), bar2);
-        assertEquals(bar3, r);
-
-        r = or(ORall(foo, bar), ORall(foo2, bar2));
-        assertEquals(ORall(foo3, bar3), r);
-
-        r = or(ORall(foo, bar), ORall(foo2, bar2, baz));
-        assertEquals(r, ORall(foo3, bar3, baz3));
-    }
-
-    @Test
-    public void testSimplification () {
-        SemanticContext r;
-
-        r = or(ANDall(foo, bar), ANDall(foo2, bar2, baz));
-        assertEquals(r, ANDall(foo3, bar3));
-
-        r = and(ORall(foo, bar), ORall(foo2, bar2, baz));
-        assertEquals(r, ORall(foo3, bar3));
+        exp = ORall(not(p("a")), ANDall("a", "b", "c"),
+                                 ANDall("d", ORall("e", ANDall("b", "c"))),
+                                 ANDall("f", ORall("g", ANDall("h", ANDall("i", "b", "j", "c")))));
+        assertEquals("(!(a))||((b)&&(c))||((d)&&(e))||((f)&&(g))", exp.toString());
     }
 }

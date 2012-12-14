@@ -2934,7 +2934,7 @@ public class TestAttributes extends BaseTest {
 
 	@Test public void testDoNotTranslateScopeAttributeCompare() throws Exception {
 		String action = "if ($rule::foo == \"foo\" || 1) { System.out.println(\"ouch\"); }";
-		String expecting = "if (((rule_scope)rule_stack.peek()).foo == \"foo\" || 1) { System.out.println(\"ouch\"); }";
+		String expecting = "if (rule_stack.peek().foo == \"foo\" || 1) { System.out.println(\"ouch\"); }";
 		ErrorQueue equeue = new ErrorQueue();
 		ErrorManager.setErrorListener(equeue);
 		Grammar g = new Grammar(
