@@ -1399,8 +1399,7 @@ public class NFAToDFAConverter {
 			if ( nakedAlt == max(nondeterministicAlts) ) {
 				// the naked alt is the last nondet alt and will be the default clause
 				nakedAltPred = new SemanticContext.TruePredicate();
-			}
-			else {
+			} else {
 				// pretend naked alternative is covered with !(union other preds)
 				// unless one of preds from other alts is a manually specified synpred
 				// since those have precedence same as alt order.  Missing synpred
@@ -1409,13 +1408,11 @@ public class NFAToDFAConverter {
 				// since it prefixes all.
 				// In LL(*) paper, i'll just have algorithm emit warning about uncovered
 				// pred
-				SemanticContext unionOfPredicatesFromAllAlts =
-					getUnionOfPredicates(altToPredMap);
+                SemanticContext unionOfPredicatesFromAllAlts = SemanticContext.or(altToPredMap.values());
 				//System.out.println("all predicates "+unionOfPredicatesFromAllAlts);
 				if ( unionOfPredicatesFromAllAlts.isSyntacticPredicate() ) {
 					nakedAltPred = new SemanticContext.TruePredicate();
-				}
-				else {
+				} else {
 					nakedAltPred =
 						SemanticContext.not(unionOfPredicatesFromAllAlts);
 				}
@@ -1575,11 +1572,7 @@ public class NFAToDFAConverter {
 				}
 				continue; // don't include at least 1 config has no ctx
 			}
-			SemanticContext combinedContext = null;
-			for (SemanticContext ctx : contextsForThisAlt) {
-				combinedContext =
-						SemanticContext.or(combinedContext,ctx);
-			}
+			SemanticContext combinedContext = SemanticContext.or(contextsForThisAlt);
 			altToPredicateContextMap.put(altI, combinedContext);
 		}
 
@@ -1632,26 +1625,6 @@ public class NFAToDFAConverter {
 		}
 
 		return altToPredicateContextMap;
-	}
-
-	/** OR together all predicates from the alts.  Note that the predicate
-	 *  for an alt could itself be a combination of predicates.
-	 */
-	protected static SemanticContext getUnionOfPredicates(Map<?, SemanticContext> altToPredMap) {
-		Iterator<SemanticContext> iter;
-		SemanticContext unionOfPredicatesFromAllAlts = null;
-		iter = altToPredMap.values().iterator();
-		while ( iter.hasNext() ) {
-			SemanticContext semCtx = iter.next();
-			if ( unionOfPredicatesFromAllAlts==null ) {
-				unionOfPredicatesFromAllAlts = semCtx;
-			}
-			else {
-				unionOfPredicatesFromAllAlts =
-						SemanticContext.or(unionOfPredicatesFromAllAlts,semCtx);
-			}
-		}
-		return unionOfPredicatesFromAllAlts;
 	}
 
 	/** for each NFA config in d, look for "predicate required" sign set

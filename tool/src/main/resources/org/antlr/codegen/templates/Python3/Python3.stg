@@ -973,7 +973,7 @@ self.match(self.input, UP, None)
  *  also hoisted into a prediction expression).
  */
 validateSemanticPredicate(pred,description) ::= <<
-if not <evalPredicate(pred, description)>:
+if not (<evalPredicate(pred, description)>):
     <ruleBacktrackFailure()>
     raise FailedPredicateException(self.input, "<ruleName>", "<description>")
 
@@ -1032,8 +1032,9 @@ dfaAcceptState(alt) ::= "alt<decisionNumber> = <alt>"
  *  enter to the target state.  To handle gated productions, we may
  *  have to evaluate some predicates for this edge.
  */
+//if (<labelExpr>)<if(predicates)> and (<predicates>)<endif>:
 dfaEdge(labelExpr, targetState, predicates) ::= <<
-if <labelExpr><if(predicates)> and (<predicates>)<endif>:
+<ifExpr(labelExpr, predicates)>
     <targetState>
 >>
 
@@ -1201,8 +1202,9 @@ if s >= 0:
 /** Just like a fixed DFA edge, test the lookahead and indicate what
  *  state to jump to next if successful.
  */
+//if (<labelExpr>)<if(predicates)> and (<predicates>)<endif>:
 cyclicDFAEdge(labelExpr, targetStateNumber, edgeNumber, predicates) ::= <<
-if (<labelExpr>)<if(predicates)> and (<predicates>)<endif>:
+<ifExpr(labelExpr, predicates)>
     s = <targetStateNumber><\n>
 >>
 
@@ -1217,13 +1219,17 @@ se:
 
 // D F A  E X P R E S S I O N S
 
-andPredicates(left,right) ::= "(<left> and <right>)"
+andPredicates(operands) ::= <%<naryOperator(operands, "and")>%>
 
-orPredicates(operands) ::= "(<operands; separator=\" or \">)"
+orPredicates(operands)  ::= <%<naryOperator(operands, "or")>%>
 
-notPredicate(pred) ::= "not <evalPredicate(pred, {})>"
+naryOperator(operands, operator)  ::= "(<first(operands)>)<rest(operands):{o |  <operator> (<o>)}>"
 
-evalPredicate(pred,description) ::= "(<pred>)"
+notPredicate(pred) ::= "not (<pred>)"
+
+evalPredicate(pred,description) ::= "<pred>"
+
+evalPredicateGroup(pred) ::= "(<pred>)"
 
 evalSynPredicate(pred,description) ::= "self.<pred>()"
 
@@ -1370,12 +1376,7 @@ isolatedDynamicScopeRef(scope) ::= "self.<scope>_stack"
 
 /** reference an attribute of rule; might only have single return value */
 ruleLabelRef(referencedRule,scope,attr) ::= <%
-<if(referencedRule.hasMultipleReturnValues)>
-<noneTest(scope, {<scope>.<attr.name>})>
-<else>
-<scope>
-<endif>
-%>
+<if(referencedRule.hasMultipleReturnValues)><noneTest({<scope>.<attr.name>}, scope)><else><scope><endif>%>
 
 returnAttributeRef(ruleDescriptor,attr) ::= <%
 <if(ruleDescriptor.hasMultipleReturnValues)>
@@ -1491,5 +1492,13 @@ codeFileExtension() ::= ".py"
 
 true_value() ::= "True"
 false_value() ::= "False"
+
+ifExpr(labelExpr, predicates) ::= <%
+<if(predicates)>
+if <andPredicates([labelExpr, predicates])>:
+<else>
+if <labelExpr>:
+<endif>
+%>
 
 noneTest(val, test) ::= "(<val> if <test> is not None else None)"

@@ -40,16 +40,16 @@ public class TestSemanticContextLogic extends BaseTest {
     }
 
     protected SemanticContext ANDall (Object ... terms) {
-        begin("ANDall " + Arrays.toString(terms));
+        //begin("ANDall " + Arrays.toString(terms));
         SemanticContext r = and(p(terms));
-        end("-> " + r);
+        //end("-> " + r);
         return r;
     }
 
     protected SemanticContext ORall (Object ... terms) {
-        begin("ORall " + Arrays.toString(terms));
+        //begin("ORall " + Arrays.toString(terms));
         SemanticContext r = or(p(terms));
-        end("-> " + r);
+        //end("-> " + r);
         return r;
     }
 

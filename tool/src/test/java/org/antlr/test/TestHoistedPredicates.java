@@ -123,8 +123,9 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
 			"grammar foo;" +
 			"a : (A|B)+ ;\n" +
             "A : AA[false];\n" +
-			"fragment AA[boolean p] : {$p}? ('a')+ 'x'  {System.out.println(\"token 1\");} ;\n" +
-			"B :      ('a')+ 'x' {System.out.println(\"token 2\");} ;\n";
+			"fragment AA[boolean p]\n" +
+			"  : {$p}? ('a')+ 'x' {System.out.println(\"token 1\");} ;\n" +
+			"B :       ('a')+ 'x' {System.out.println(\"token 2\");} ;\n";
 		String found = execParser("foo.g", grammar, "fooParser", "fooLexer",
 				    "a", "aax", false);
 		assertEquals("token 2\n", found);
@@ -132,11 +133,12 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
 
 	@Test public void testLexerPredsInCyclicDFA2() throws Exception {
 		String grammar =
-			"grammar foo;" +
+			"grammar foo;\n" +
 			"a : (A|B)+ ;\n" +
             "A : AA[false];\n" +
-			"fragment AA[boolean p] : {$p}? ('a')+ 'x' ('y')? {System.out.println(\"token 1\");} ;\n" +
-			"B :      ('a')+ 'x' {System.out.println(\"token 2\");} ;\n";
+			"fragment AA[boolean p]\n" +
+			"  : {$p}? ('a')+ 'x' ('y')? {System.out.println(\"token 1\");} ;\n" +
+			"B :       ('a')+ 'x'        {System.out.println(\"token 2\");} ;\n";
 		String found = execParser("foo.g", grammar, "fooParser", "fooLexer",
 				    "a", "aax", false);
 		assertEquals("token 2\n", found);
@@ -154,6 +156,7 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
 				    "a", "aa", false);
 		// "a" is ambig; can match both A, B.  Pred says match A twice
 		assertEquals("token 1\ntoken 1\n", found);
+		//assertFalse(true);
 	}
 
 	@Test public void testGatedPred2() throws Exception {

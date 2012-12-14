@@ -455,7 +455,7 @@ public class DFAState extends State {
 	/** Return the uniquely mentioned alt from the NFA configurations;
 	 *  Ignore the resolved bit etc...  Return INVALID_ALT_NUMBER
 	 *  if there is more than one alt mentioned.
-	 */ 
+	 */
 	public int getUniqueAlt() {
 		int alt = NFA.INVALID_ALT_NUMBER;
 		int numConfigs = nfaConfigurations.size();
@@ -699,38 +699,37 @@ public class DFAState extends State {
 	 *  plain 'a' is ok.  It's also ok for starting alt 2.  Hence, you can't
 	 *  test p.  Even on the edge going to accept state for alt 1 of X, you
 	 *  can't test p.  You can get to the same place with and w/o the context.
-	 *  Therefore, it is never ok to test p in this situation. 
+	 *  Therefore, it is never ok to test p in this situation.
 	 *
 	 *  TODO: cache this as it's called a lot; or at least set bit if >1 present in state
 	 */
 	public SemanticContext getGatedPredicatesInNFAConfigurations() {
-		SemanticContext unionOfPredicatesFromAllAlts = null;
 		int numConfigs = nfaConfigurations.size();
+        Set<SemanticContext> gatedPreds = new LinkedHashSet<SemanticContext>();
 		for (int i = 0; i < numConfigs; i++) {
 			NFAConfiguration configuration = nfaConfigurations.get(i);
 			SemanticContext gatedPredExpr =
 				configuration.semanticContext.getGatedPredicateContext();
-			if ( gatedPredExpr==null ) {
+			if (gatedPredExpr == null) {
 				// if we ever find a configuration w/o a gated predicate
 				// (even if it's a nongated predicate), we cannot gate
 				// the indident edges.
 				return null;
-			}
-			else if ( acceptState || !configuration.semanticContext.isSyntacticPredicate() ) {
+			} else if (acceptState || !configuration.semanticContext.isSyntacticPredicate()) {
 				// at this point we have a gated predicate and, due to elseif,
 				// we know it's an accept or not a syn pred.  In this case,
 				// it's safe to add the gated predicate to the union.  We
 				// only want to add syn preds if it's an accept state.  Other
 				// gated preds can be used with edges leading to accept states.
-				if ( unionOfPredicatesFromAllAlts==null ) {
-					unionOfPredicatesFromAllAlts = gatedPredExpr;
-				}
-				else {
-					unionOfPredicatesFromAllAlts =
-						SemanticContext.or(unionOfPredicatesFromAllAlts,gatedPredExpr);
-				}
+
+                gatedPreds.add(gatedPredExpr);
 			}
 		}
+        if (gatedPreds.isEmpty()) {
+            return null;
+        }
+
+		SemanticContext unionOfPredicatesFromAllAlts = SemanticContext.or(gatedPreds);
 		if ( unionOfPredicatesFromAllAlts instanceof SemanticContext.TruePredicate ) {
 			return null;
 		}

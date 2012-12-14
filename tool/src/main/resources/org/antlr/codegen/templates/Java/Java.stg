@@ -987,7 +987,7 @@ dfaAcceptState(alt) ::= "alt<decisionNumber>=<alt>;"
  *  have to evaluate some predicates for this edge.
  */
 dfaEdge(labelExpr, targetState, predicates) ::= <<
-if ( (<labelExpr>) <if(predicates)>&& (<predicates>)<endif>) {
+if ( (<labelExpr>)<if(predicates)> && (<predicates>)<endif> ) {
 	<targetState>
 }
 >>
@@ -1171,7 +1171,7 @@ break;
  *  state to jump to next if successful.
  */
 cyclicDFAEdge(labelExpr, targetStateNumber, edgeNumber, predicates) ::= <<
-if ( (<labelExpr>) <if(predicates)>&& (<predicates>)<endif>) {s = <targetStateNumber>;}
+if ( (<labelExpr>)<if(predicates)> && (<predicates>)<endif> ) {s = <targetStateNumber>;}
 >>
 
 /** An edge pointing at end-of-token; essentially matches any char;
@@ -1184,11 +1184,13 @@ s = <targetStateNumber>;
 
 // D F A  E X P R E S S I O N S
 
-andPredicates(left,right) ::= "(<left>)&&(<right>)"
+andPredicates(operands) ::= <%<naryOperator(operands, "&&")>%>
 
-orPredicates(operands) ::= "(<first(operands)>)<rest(operands):{o | ||(<o>)}>"
+orPredicates(operands)  ::= <%<naryOperator(operands, "||")>%>
 
-notPredicate(pred) ::= "!(<evalPredicate(pred,{})>)"
+naryOperator(operands, operator) ::= "(<first(operands)>)<rest(operands):{o |<operator>(<o>)}>"
+
+notPredicate(pred) ::= "!(<pred>)"
 
 evalPredicate(pred,description) ::= "<pred>"
 

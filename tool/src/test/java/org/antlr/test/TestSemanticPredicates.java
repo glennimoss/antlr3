@@ -719,4 +719,5 @@ public class TestSemanticPredicates extends SemanticPredicateBaseTest {
             ".s2-{true}?->:s4=>2\n";
 		checkDecision(g, 1, expecting, null, null, null, null, null, 0, false);
 	}
+
 }

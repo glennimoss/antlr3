@@ -75,8 +75,8 @@ public abstract class SemanticContext {
      *  given a set of output templates.
      */
     public abstract ST genExpr(CodeGenerator generator,
-            STGroup templates,
-            DFA dfa);
+                               STGroup templates,
+                               DFA dfa);
 
     public abstract boolean hasUserSemanticPredicate(); // user-specified sempred {}? or {}?=>
     public abstract boolean isSyntacticPredicate();
@@ -85,27 +85,34 @@ public abstract class SemanticContext {
     public void trackUseOfSyntacticPredicates(Grammar g) {
     }
 
+    /** Factor out redundant subterms. */
     protected SemanticContext factored () {
         return this;
     }
 
+    /** Simplify the object by e.g. unnesting CommutativePredicates of one
+     * element or resolving tautologies and contradictions. "Canonicalizes" this
+     * expression.
+     */
     protected SemanticContext simplify () {
         return this;
     }
 
+    /** Substitute this object (or !(this object)) with the replacement term (or !(replacement)),
+     * if it is in the set of terms we want to replace.
+     */
     protected SemanticContext substitute (Set<SemanticContext> terms, SemanticContext replacement) {
         if (terms.contains(this)) {
-            //print("Found a replacement: " + this + " -> " + replacement);
             return replacement;
         } else if (terms.contains(not(this))) {
             replacement = not(replacement);
-            //print("Found a replacement: NOT " + this + " -> " + replacement);
             return replacement;
         }
 
         return this._substitute(terms, replacement);
     }
 
+    /** Intended to be overridden by classes with some kind of heirarchy of terms within itself. */
     protected SemanticContext _substitute (Set<SemanticContext> terms, SemanticContext replacement) {
         return this;
     }
@@ -139,8 +146,8 @@ public abstract class SemanticContext {
         protected int constantValue = INVALID_PRED_VALUE;
 
         public Predicate(int constantValue) {
-            predicateAST = new GrammarAST();
-            this.constantValue=constantValue;
+            this.predicateAST = new GrammarAST();
+            this.constantValue = constantValue;
         }
 
         public Predicate(GrammarAST predicate) {
@@ -163,7 +170,6 @@ public abstract class SemanticContext {
         /** Two predicates are the same if they are literally the same
          *  text rather than same node in the grammar's AST.
          *  Or, if they have the same constant value, return equal.
-         *  As of July 2006 I'm not sure these are needed.
          */
         @Override
         public boolean equals(Object o) {
@@ -172,7 +178,7 @@ public abstract class SemanticContext {
             }
 
             Predicate other = (Predicate)o;
-            if (this.constantValue != other.constantValue){
+            if (this.constantValue != other.constantValue) {
                 return false;
             }
 
@@ -185,11 +191,11 @@ public abstract class SemanticContext {
 
         @Override
         public int hashCode() {
-            if (constantValue != INVALID_PRED_VALUE){
-                return constantValue;
+            if (this.constantValue != INVALID_PRED_VALUE){
+                return this.constantValue;
             }
 
-            if ( predicateAST == null ) {
+            if (this.predicateAST == null) {
                 return 0;
             }
 
@@ -198,23 +204,20 @@ public abstract class SemanticContext {
 
         @Override
         public ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa)
-        {
+                          STGroup templates,
+                          DFA dfa) {
             return genExpr(generator, templates, dfa, this.predicateAST);
         }
 
         protected ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa,
-                GrammarAST actionTree)
-        {
+                             STGroup templates,
+                             DFA dfa,
+                             GrammarAST actionTree) {
             ST eST;
             if (templates != null) {
-                if ( synpred ) {
+                if (this.synpred) {
                     eST = templates.getInstanceOf("evalSynPredicate");
-                }
-                else {
+                } else {
                     eST = templates.getInstanceOf("evalPredicate");
                 }
             } else {
@@ -222,7 +225,7 @@ public abstract class SemanticContext {
             }
 
             if (generator != null) {
-                if (dfa != null && !synpred) {
+                if (dfa != null && !this.synpred) {
                     generator.grammar.decisionsWhoseDFAsUsesSemPreds.add(dfa);
                 }
                 eST.add("pred", generator.translateAction(actionTree.enclosingRuleName, actionTree));
@@ -233,14 +236,13 @@ public abstract class SemanticContext {
             return eST;
         }
 
-        protected String hoistExpr (CodeGenerator generator, STGroup templates)
-        {
+        protected String hoistExpr (CodeGenerator generator, STGroup templates) {
             return this.toString();
         }
 
         @Override
         public SemanticContext getGatedPredicateContext() {
-            if ( gated ) {
+            if (gated) {
                 return this;
             }
             return null;
@@ -248,31 +250,31 @@ public abstract class SemanticContext {
 
         @Override
         public boolean hasUserSemanticPredicate() { // user-specified sempred
-            return predicateAST !=null &&
-                ( predicateAST.getType()==ANTLRParser.GATED_SEMPRED ||
-                  predicateAST.getType()==ANTLRParser.SEMPRED );
+            return this.predicateAST != null &&
+                (this.predicateAST.getType() == ANTLRParser.GATED_SEMPRED ||
+                 this.predicateAST.getType() == ANTLRParser.SEMPRED);
         }
 
         @Override
         public boolean isSyntacticPredicate() {
-            return predicateAST !=null &&
-                ( predicateAST.getType()==ANTLRParser.SYN_SEMPRED ||
-                  predicateAST.getType()==ANTLRParser.BACKTRACK_SEMPRED );
+            return this.predicateAST !=null &&
+                (this.predicateAST.getType() == ANTLRParser.SYN_SEMPRED ||
+                 this.predicateAST.getType() == ANTLRParser.BACKTRACK_SEMPRED);
         }
 
         @Override
         public void trackUseOfSyntacticPredicates(Grammar g) {
-            if ( synpred ) {
-                g.synPredNamesUsedInDFA.add(predicateAST.getText());
+            if (this.synpred) {
+                g.synPredNamesUsedInDFA.add(this.predicateAST.getText());
             }
         }
 
         @Override
         public String toString() {
-            if ( predicateAST ==null ) {
+            if (this.predicateAST == null) {
                 return "<nopred>";
             }
-            return predicateAST.getText();
+            return this.predicateAST.getText();
         }
 
         public String getEnclosingRuleName () {
@@ -292,10 +294,9 @@ public abstract class SemanticContext {
 
         @Override
         public ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa)
-        {
-            if ( templates!=null ) {
+                          STGroup templates,
+                          DFA dfa) {
+            if (templates != null) {
                 return templates.getInstanceOf("true_value");
             }
             return new ST("true");
@@ -320,11 +321,10 @@ public abstract class SemanticContext {
 
         @Override
         public ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa)
-        {
-            if ( templates!=null ) {
-                return templates.getInstanceOf("false");
+                          STGroup templates,
+                          DFA dfa) {
+            if (templates != null) {
+                return templates.getInstanceOf("false_value");
             }
             return new ST("false");
         }
@@ -343,48 +343,47 @@ public abstract class SemanticContext {
 
     public static class NOT extends SemanticContext {
         protected SemanticContext ctx;
+
         protected NOT (SemanticContext ctx) {
             this.ctx = ctx;
         }
 
         @Override
         public ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa)
-        {
+                          STGroup templates,
+                          DFA dfa) {
             ST eST;
-            if ( templates!=null ) {
+            if (templates != null) {
                 eST = templates.getInstanceOf("notPredicate");
-            }
-            else {
+            } else {
                 eST = new ST("!(<pred>)");
             }
-            eST.add("pred", ctx.genExpr(generator,templates,dfa));
+            eST.add("pred", this.ctx.genExpr(generator, templates, dfa));
             return eST;
         }
 
         @Override
         public SemanticContext getGatedPredicateContext() {
-            SemanticContext p = ctx.getGatedPredicateContext();
-            if ( p==null ) {
+            SemanticContext p = this.ctx.getGatedPredicateContext();
+            if (p == null) {
                 return null;
             }
-            return new NOT(p);
+            return not(p);
         }
 
         @Override
         public boolean hasUserSemanticPredicate() {
-            return ctx.hasUserSemanticPredicate();
+            return this.ctx.hasUserSemanticPredicate();
         }
 
         @Override
         public boolean isSyntacticPredicate() {
-            return ctx.isSyntacticPredicate();
+            return this.ctx.isSyntacticPredicate();
         }
 
         @Override
         public void trackUseOfSyntacticPredicates(Grammar g) {
-            ctx.trackUseOfSyntacticPredicates(g);
+            this.ctx.trackUseOfSyntacticPredicates(g);
         }
 
         @Override
@@ -397,12 +396,12 @@ public abstract class SemanticContext {
 
         @Override
         public int hashCode() {
-            return ~ctx.hashCode();
+            return ~this.ctx.hashCode();
         }
 
         @Override
         public String toString() {
-            return "!("+ctx+")";
+            return "!(" + this.ctx + ")";
         }
 
         @Override
@@ -427,6 +426,9 @@ public abstract class SemanticContext {
                 }
 
                 if (notTerms.size() >= notNotTerms.size()) {
+                    // By pushing in the ! by De Morgan's law, we reduce the
+                    // total number of NOT nodes in this tree.
+
                     // NOT the notNotTerms and add to notTerms
                     for (SemanticContext term : notNotTerms) {
                         notTerms.add(not(term));
@@ -454,8 +456,8 @@ public abstract class SemanticContext {
 
     public static class HoistedPredicate extends Predicate {
         protected Predicate semPred;
-        public GrammarAST arguments;
-        public Grammar grammar;
+        protected GrammarAST arguments;
+        protected Grammar grammar;
 
         public HoistedPredicate (Predicate semPred, GrammarAST arguments, Grammar grammar) {
             super(semPred);
@@ -467,27 +469,25 @@ public abstract class SemanticContext {
 
         @Override
         public ST genExpr(CodeGenerator generator,
-                STGroup templates,
-                DFA dfa)
-        {
+                          STGroup templates,
+                          DFA dfa) {
             if (generator == null && this.grammar != null) {
                 generator = this.grammar.getCodeGenerator();
             }
             if (templates == null && generator != null) {
                 templates = generator.getTemplates();
             }
-            String hoistedExpr = hoistExpr(generator, templates);
+            String hoistedExpr = this.hoistExpr(generator, templates);
             GrammarAST actionTree = new GrammarAST();
             // Borrow all contextual info from the arguments tree.
             actionTree.initialize(this.arguments);
             // But then replace the token with our actual expression text
             actionTree.initialize(ANTLRParser.ACTION, hoistedExpr);
-            return genExpr(generator, templates, dfa, actionTree);
+            return this.genExpr(generator, templates, dfa, actionTree);
         }
 
         @Override
-        protected String hoistExpr (CodeGenerator generator, STGroup templates)
-        {
+        protected String hoistExpr (CodeGenerator generator, STGroup templates) {
             String semExpr = this.semPred.hoistExpr(generator, templates);
             String hoistedExpr;
 
@@ -547,14 +547,14 @@ public abstract class SemanticContext {
         protected final Set<SemanticContext> operands = new LinkedHashSet<SemanticContext>();
         protected int hashcode;
 
-        public CommutativePredicate () {}
+        protected CommutativePredicate () {}
 
-        public CommutativePredicate (SemanticContext ... ops) {
+        protected CommutativePredicate (SemanticContext ... ops) {
             this(Arrays.asList(ops));
         }
 
-        public CommutativePredicate (Collection<SemanticContext> contexts){
-            for (SemanticContext context : contexts){
+        protected CommutativePredicate (Collection<SemanticContext> contexts){
+            for (SemanticContext context : contexts) {
                 if (context != null && !context.equals(EMPTY_SEMANTIC_CONTEXT)) {
                     if (context.getClass() == this.getClass()) {
                         this.operands.addAll(((CommutativePredicate)context).operands);
@@ -569,20 +569,23 @@ public abstract class SemanticContext {
 
         @Override
         public SemanticContext getGatedPredicateContext() {
-            SemanticContext result = null;
-            for (SemanticContext semctx : operands) {
+            Set<SemanticContext> gatedPreds = new LinkedHashSet<SemanticContext>();
+            for (SemanticContext semctx : this.operands) {
                 SemanticContext gatedPred = semctx.getGatedPredicateContext();
-                if ( gatedPred!=null ) {
-                    result = make(result, gatedPred).simplify();
+                if (gatedPred != null) {
+                    gatedPreds.add(gatedPred);
                 }
             }
-            return result;
+            if (gatedPreds.isEmpty()) {
+                return null;
+            }
+            return this.make(gatedPreds);
         }
 
         @Override
         public boolean hasUserSemanticPredicate() {
-            for (SemanticContext semctx : operands) {
-                if ( semctx.hasUserSemanticPredicate() ) {
+            for (SemanticContext semctx : this.operands) {
+                if (semctx.hasUserSemanticPredicate()) {
                     return true;
                 }
             }
@@ -591,8 +594,8 @@ public abstract class SemanticContext {
 
         @Override
         public boolean isSyntacticPredicate() {
-            for (SemanticContext semctx : operands) {
-                if ( semctx.isSyntacticPredicate() ) {
+            for (SemanticContext semctx : this.operands) {
+                if (semctx.isSyntacticPredicate()) {
                     return true;
                 }
             }
@@ -601,7 +604,7 @@ public abstract class SemanticContext {
 
         @Override
         public void trackUseOfSyntacticPredicates(Grammar g) {
-            for (SemanticContext semctx : operands) {
+            for (SemanticContext semctx : this.operands) {
                 semctx.trackUseOfSyntacticPredicates(g);
             }
         }
@@ -614,17 +617,17 @@ public abstract class SemanticContext {
             if (obj.getClass() == this.getClass()) {
                 CommutativePredicate commutative = (CommutativePredicate)obj;
                 Set<SemanticContext> otherOperands = commutative.operands;
-                if (operands.size() != otherOperands.size())
+                if (this.operands.size() != otherOperands.size())
                     return false;
 
-                return operands.containsAll(otherOperands);
+                return this.operands.containsAll(otherOperands);
             }
 
             if (obj instanceof NOT) {
                 NOT not = (NOT)obj;
                 if (not.ctx instanceof CommutativePredicate && not.ctx.getClass() != this.getClass()) {
                     Set<SemanticContext> otherOperands = ((CommutativePredicate)not.ctx).operands;
-                    if (operands.size() != otherOperands.size())
+                    if (this.operands.size() != otherOperands.size())
                         return false;
 
                     ArrayList<SemanticContext> temp = new ArrayList<SemanticContext>(operands.size());
@@ -632,7 +635,7 @@ public abstract class SemanticContext {
                         temp.add(not(context));
                     }
 
-                    return operands.containsAll(temp);
+                    return this.operands.containsAll(temp);
                 }
             }
 
@@ -640,7 +643,7 @@ public abstract class SemanticContext {
         }
 
         @Override
-        public int hashCode(){
+        public int hashCode() {
             return hashcode;
         }
 
@@ -648,9 +651,9 @@ public abstract class SemanticContext {
         public String toString() {
             StringBuilder buf = new StringBuilder();
             int i = 0;
-            for (SemanticContext semctx : operands) {
+            for (SemanticContext semctx : this.operands) {
                 if ( i>0 ) {
-                    buf.append(getOperatorString());
+                    buf.append(this.getOperatorString());
                 }
                 buf.append("(");
                 buf.append(semctx.toString());
@@ -660,9 +663,30 @@ public abstract class SemanticContext {
             return buf.toString();
         }
 
-        public abstract String getOperatorString();
+        public abstract String getOperatorString ();
 
-        public abstract int calculateHashCode();
+        public abstract int calculateHashCode ();
+
+        protected abstract String getTemplateName ();
+
+        @Override
+        public ST genExpr(CodeGenerator generator,
+                          STGroup templates,
+                          DFA dfa)
+        {
+            ST eST;
+            if ( templates!=null ) {
+                eST = templates.getInstanceOf(this.getTemplateName());
+            }
+            else {
+                eST = new ST("(<first(operands)>)<rest(operands):{o |<operator>(<o>)}>")
+                    .add("operator", this.getOperatorString());
+            }
+            for (SemanticContext semctx : operands) {
+                eST.add("operands", semctx.genExpr(generator, templates, dfa));
+            }
+            return eST;
+        }
 
         /**
          * The absorbing term for this operator.
@@ -685,11 +709,15 @@ public abstract class SemanticContext {
          */
         protected abstract CommutativePredicate inverse ();
 
+        /**
+         * Create an instance of this CommutativePredicate out of the provided
+         * SemanticContexts.
+         */
         protected abstract SemanticContext make (SemanticContext a, SemanticContext b);
         protected abstract SemanticContext make (Collection<SemanticContext> ops);
 
+        @Override
         protected SemanticContext factored () {
-            //begin(this.getOperatorString() + ".Factoring: " + this);
             List<Set<SemanticContext>> ops = new ArrayList<Set<SemanticContext>>(this.operands.size());
 
             Set<SemanticContext> commonTerms = null;
@@ -700,10 +728,7 @@ public abstract class SemanticContext {
                 if (commonTerms == null) {
                     commonTerms = new LinkedHashSet<SemanticContext>(fops);
                 } else {
-                    //print("Union: " + commonTerms + ", " + fops);
-
                     commonTerms.retainAll(fops);
-                    //print("== " + commonTerms);
                 }
 
                 if (commonTerms.isEmpty()) {
@@ -713,16 +738,12 @@ public abstract class SemanticContext {
             }
 
             SemanticContext self = this;
-            if (commonTerms.isEmpty()) {
-                // Already no terms in common, no need to do more.
-                //print("No common terms");
-            } else {
+            if (!commonTerms.isEmpty()) {
                 Set<SemanticContext> factors = new LinkedHashSet<SemanticContext>(ops.size());
                 for (Set<SemanticContext> fops : ops) {
                     fops.removeAll(commonTerms);
                     factors.add(inverse.make(fops));
                 }
-                //print("Removed common terms: " + factors);
 
                 self = inverse.make(inverse.make(commonTerms), this.make(factors));
             }
@@ -736,30 +757,28 @@ public abstract class SemanticContext {
 
                 Set<SemanticContext> myops = new LinkedHashSet<SemanticContext>(myself.operands);
                 for (SemanticContext term : myself.operands) {
+                    // We don't want to substitute term in term, so remove it,
+                    // substitute then add it back.
                     myops.remove(term);
-
                     terms.add(term.substitute(myops, identity));
-
                     myops.add(term);
                 }
 
                 if (!myself.operands.equals(terms)) {
-                    //print("Terms changed...");
                     self = myself.make(terms).factored();
                 }
             }
 
-            //end("-> " + self);
             return self;
         }
 
         protected Set<SemanticContext> getFactoringOperands(SemanticContext context) {
-            //begin(this.getOperatorString() + ".getFactoringOperands: " + context);
-
             Set<SemanticContext> result;
             if (context.getClass() == this.getClass()) {
                 result = ((CommutativePredicate)context).operands;
-            } else if (context instanceof NOT) {
+            } else if (context instanceof NOT && !(((NOT)context).ctx instanceof Predicate)) {
+                // If it's not a predicate let's see if we can extract
+                // anything else useful out of it.
                 Set<SemanticContext> ops = this.inverse().getFactoringOperands(((NOT)context).ctx);
                 result = new LinkedHashSet<SemanticContext>(ops.size());
                 for (SemanticContext op : ops) {
@@ -770,28 +789,21 @@ public abstract class SemanticContext {
                 result.add(context);
             }
 
-            //end("-> " + result);
             return result;
         }
 
+        @Override
         protected SemanticContext simplify () {
-            //begin(this.getOperatorString() + ".Simplifying: " + this);
             SemanticContext identity = this.getIdentityTerm();
 
-            if (this.operands.remove(identity)) {
-                //print("-- removed identity term: " + this);
-            }
+            this.operands.remove(identity);
 
             if (this.operands.isEmpty()) {
-                //end("-> empty: " + identity);
                 return identity;
             }
 
             if (this.operands.size() == 1) {
-                //print("Single element: " + this.operands);
-                SemanticContext elem = this.operands.iterator().next();
-                //end("-> " + elem);
-                return elem;
+                return this.operands.iterator().next();
             }
 
             SemanticContext absorb = this.getAbsorbingTerm();
@@ -799,9 +811,9 @@ public abstract class SemanticContext {
             Set<SemanticContext> notOps = new LinkedHashSet<SemanticContext>();
             for (SemanticContext op : this.operands) {
                 if (absorb.equals(op)) {
-                    //end("-> found an absorb term: " + absorb);
                     return absorb;
                 }
+
                 if (op instanceof NOT) {
                     SemanticContext notOp = ((NOT)op).ctx;
                     if (this.operands.contains(notOp)) {
@@ -809,33 +821,30 @@ public abstract class SemanticContext {
                         // that p is also in the operands. By definition,
                         // p op !p == absorb so this whole expression simplifies
                         // to absorb.
-                        //end("-> found p, !p = " + absorb);
                         return absorb;
                     }
-                    notOps.add(((NOT)op).ctx);
+                    notOps.add(notOp);
                 } else {
                     ops.add(op);
                 }
             }
 
             if (notOps.size() > ops.size()) {
-                //print("Worth pulling up !");
+                // By factoring out the ! by De Morgan's law, we reduce the number
+                // of NOT nodes in this tree.
+
                 // NOT the ops and add to notOps
                 for (SemanticContext op : ops) {
                     notOps.add(not(op));
                 }
-                SemanticContext notted = new NOT(this.inverse().make(notOps));
-                //end("-> Pulled up !: " + notted);
-                return notted;
+                return new NOT(this.inverse().make(notOps));
             }
 
-            //end("-> simple enough, returning self");
             return this;
         }
 
         @Override
         protected SemanticContext _substitute (Set<SemanticContext> terms, SemanticContext replacement) {
-            //begin(this.getOperatorString() + "._substitute: " + this + " (" + terms + ", " + replacement + ")");
             Set<SemanticContext> newTerms = new LinkedHashSet<SemanticContext>(this.operands.size());
 
             for (SemanticContext term : this.operands) {
@@ -846,6 +855,7 @@ public abstract class SemanticContext {
                 if (term.getClass() == this.getClass()) {
                     CommutativePredicate commTerm = (CommutativePredicate)term;
 
+                    // Look for subsets of the operands that can be substituted.
                     if (newTerms.containsAll(commTerm.operands)) {
                         newTerms.removeAll(commTerm.operands);
                         newTerms.add(replacement);
@@ -856,14 +866,10 @@ public abstract class SemanticContext {
 
             SemanticContext result = null;
             if (this.operands.equals(newTerms)) {
-                //print("No change");
                 result = this;
             } else {
-                //print("Substituted...");
                 result = this.make(newTerms);
             }
-
-            //end("-> " + result);
             return result;
         }
     }
@@ -881,30 +887,8 @@ public abstract class SemanticContext {
         }
 
         @Override
-        public ST genExpr(CodeGenerator generator,
-                          STGroup templates,
-                          DFA dfa)
-        {
-            ST result = null;
-            for (SemanticContext operand : operands) {
-                if (result == null) {
-                    result = operand.genExpr(generator, templates, dfa);
-                    continue;
-                }
-
-                ST eST;
-                if ( templates!=null ) {
-                    eST = templates.getInstanceOf("andPredicates");
-                }
-                else {
-                    eST = new ST("(<left>)&&(<right>)");
-                }
-                eST.add("left", result);
-                eST.add("right", operand.genExpr(generator,templates,dfa));
-                result = eST;
-            }
-
-            return result;
+        protected String getTemplateName () {
+            return "andPredicates";
         }
 
         @Override
@@ -934,17 +918,15 @@ public abstract class SemanticContext {
 
         @Override
         protected CommutativePredicate inverse () {
-            return SemanticContext.iOr;
+            return iOr;
         }
 
         @Override
         protected SemanticContext make (SemanticContext a, SemanticContext b) {
-            //print("Making " + a + " && " + b);
             return new AND(a, b).simplify();
         }
 
         protected SemanticContext make (Collection<SemanticContext> ops) {
-            //print("Making && " + ops);
             return new AND(ops).simplify();
         }
     }
@@ -962,21 +944,8 @@ public abstract class SemanticContext {
         }
 
         @Override
-        public ST genExpr(CodeGenerator generator,
-                          STGroup templates,
-                          DFA dfa)
-        {
-            ST eST;
-            if ( templates!=null ) {
-                eST = templates.getInstanceOf("orPredicates");
-            }
-            else {
-                eST = new ST("(<first(operands)>)<rest(operands):{o | ||(<o>)}>");
-            }
-            for (SemanticContext semctx : operands) {
-                eST.add("operands", semctx.genExpr(generator,templates,dfa));
-            }
-            return eST;
+        protected String getTemplateName () {
+            return "orPredicates";
         }
 
         @Override
@@ -1006,23 +975,20 @@ public abstract class SemanticContext {
 
         @Override
         protected CommutativePredicate inverse () {
-            return SemanticContext.iAnd;
+            return iAnd;
         }
 
         @Override
         protected SemanticContext make (SemanticContext a, SemanticContext b) {
-            //print("Making " + a + " || " + b);
             return new OR(a, b).simplify();
         }
 
         @Override
         protected SemanticContext make (Collection<SemanticContext> ops) {
-            //print("Making || " + ops);
             return new OR(ops).simplify();
         }
 
     }
-
 
     protected static AND iAnd = new AND();
     protected static OR iOr = new OR();
@@ -1031,34 +997,19 @@ public abstract class SemanticContext {
         return new AND(ops).simplify().factored();
     }
 
+    public static SemanticContext and (Collection<SemanticContext> ops) {
+        return new AND(ops).simplify().factored();
+    }
+
     public static SemanticContext or (SemanticContext ... ops) {
+        return new OR(ops).simplify().factored();
+    }
+
+    public static SemanticContext or (Collection<SemanticContext> ops) {
         return new OR(ops).simplify().factored();
     }
 
     public static SemanticContext not (SemanticContext a) {
         return new NOT(a).simplify();
     }
-
-    /*
-    protected static int depth = 0;
-    public static void begin (String msg) {
-        print(msg);
-        depth++;
-    }
-
-    public static void end (String msg) {
-        depth--;
-        print(msg);
-    }
-
-    public static void print (String msg) {
-        StringBuilder buf = new StringBuilder();
-        for (int i = 0; i < depth; i++) {
-            buf.append("  ");
-        }
-        buf.append(msg);
-
-        //System.out.println(buf.toString());
-    }
-    */
 }
