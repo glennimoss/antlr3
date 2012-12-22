@@ -26,6 +26,8 @@
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+import "org/antlr/codegen/templates/common.stg"
+
 javaTypeInitMap ::= [
 	"int":"0",
 	"long":"0",
@@ -58,6 +60,11 @@ booleanLiteral ::= [
 	"false":"false",
 	default:"false"
 ]
+
+// L A N G U A G E   E L E M E N T S
+
+// As the common.stg uses the Java elements for defaults, we don't need to
+// specify any here.
 
 /** The overall file structure of a recognizer; stores methods for rules
  *  and cyclic DFAs plus support code.
@@ -305,54 +312,15 @@ treeParser(grammar, name, scopes, tokens, tokenNames, globalAction, rules,
               filterMode, ASTLabelType)>
 >>
 
-/** A simpler version of a rule template that is specific to the imaginary
- *  rules created for syntactic predicates.  As they never have return values
- *  nor parameters etc..., just give simplest possible method.  Don't do
- *  any of the normal memoization stuff in here either; it's a waste.
- *  As predicates cannot be inlined into the invoking rule, they need to
- *  be in a rule by themselves.
- */
-synpredRule(ruleName, ruleDescriptor, block, description, nakedBlock) ::=
-<<
-// $ANTLR start <ruleName>
-public final void <ruleName>_fragment(<ruleDescriptor.parameterScope:parameterScope()>) throws <ruleDescriptor.throwsSpec:{x|<x>}; separator=", "> {
-	<ruleLabelDefs()>
-<if(trace)>
-	traceIn("<ruleName>_fragment", <ruleDescriptor.index>);
-	try {
-		<block>
-	}
-	finally {
-		traceOut("<ruleName>_fragment", <ruleDescriptor.index>);
-	}
-<else>
-	<block>
-<endif>
+
+@synpred.trapFailedBacktrack() ::= <<
+try {
+    // can never throw exception
+    <@super.trapFailedBacktrack()>
+} catch (RecognitionException re) {
+    System.err.println("impossible: "+re);
 }
-// $ANTLR end <ruleName>
->>
-
-synpred(name) ::= <<
-public final boolean <name>() {
-	state.backtracking++;
-	<@start()>
-	int start = input.mark();
-	try {
-		<name>_fragment(); // can never throw exception
-	} catch (RecognitionException re) {
-		System.err.println("impossible: "+re);
-	}
-	boolean success = !state.failed;
-	input.rewind(start);
-	<@stop()>
-	state.backtracking--;
-	state.failed=false;
-	return success;
-}<\n>
->>
-
-lexerSynpred(name) ::= <<
-<synpred(name)>
+boolean success = !state.failed;
 >>
 
 ruleMemoization(name) ::= <<
@@ -421,12 +389,6 @@ public final <returnType(ruleDescriptor)> <ruleName>(<ruleDescriptor.parameterSc
 // $ANTLR end "<ruleName>"
 >>
 
-catch(decl,action) ::= <<
-catch (<e.decl>) {
-	<e.action>
-}
->>
-
 ruleDeclarations() ::= <<
 <if(ruleDescriptor.hasMultipleReturnValues)>
 <returnType(ruleDescriptor)> retval = new <returnType(ruleDescriptor)>();
@@ -452,18 +414,6 @@ ruleScopeCleanUp() ::= <<
 >>
 
 
-ruleLabelDefs() ::= <<
-<[ruleDescriptor.tokenLabels,ruleDescriptor.tokenListLabels,
-  ruleDescriptor.wildcardTreeLabels,ruleDescriptor.wildcardTreeListLabels]
-	:{it |<labelType> <it.label.text>=null;}; separator="\n"
->
-<[ruleDescriptor.tokenListLabels,ruleDescriptor.ruleListLabels,ruleDescriptor.wildcardTreeListLabels]
-	:{it |List\<Object> list_<it.label.text>=null;}; separator="\n"
->
-<ruleDescriptor.ruleLabels:ruleLabelDef(); separator="\n">
-<ruleDescriptor.ruleListLabels:{ll|RuleReturnScope <ll.label.text> = null;}; separator="\n">
->>
-
 lexerRuleLabelDefs() ::= <<
 <[ruleDescriptor.tokenLabels,
   ruleDescriptor.tokenListLabels,
@@ -476,18 +426,6 @@ lexerRuleLabelDefs() ::= <<
 	:{it |List\<Object> list_<it.label.text>=null;}; separator="\n"
 >
 >>
-
-ruleReturnValue() ::= <%
-<if(!ruleDescriptor.isSynPred)>
-<if(ruleDescriptor.hasReturnValue)>
-<if(ruleDescriptor.hasSingleReturnValue)>
-<ruleDescriptor.singleValueReturnName>
-<else>
-retval
-<endif>
-<endif>
-<endif>
-%>
 
 ruleCleanUp() ::= <<
 <if(ruleDescriptor.hasMultipleReturnValues)>
@@ -557,47 +495,26 @@ public void mTokens() throws RecognitionException {
 
 /** A (...) subrule with multiple alternatives */
 block(alts,decls,decision,enclosingBlockLevel,blockLevel,decisionNumber,maxK,maxAlt,description) ::= <<
-// <fileName>:<description>
-int alt<decisionNumber>=<maxAlt>;
+<rem()> <fileName>:<description>
+<varDecl("int", {alt<decisionNumber>}, maxAlt)>
 <decls>
 <@predecision()>
 <decision>
 <@postdecision()>
 <@prebranch()>
-switch (alt<decisionNumber>) {
-	<alts:{a | <altSwitchCase(i,a)>}>
-}
+<switchStmt({alt<decisionNumber>}, alts:{a | <altSwitchCase(i,a)>})>
 <@postbranch()>
 >>
 
 /** A rule block with multiple alternatives */
 ruleBlock(alts,decls,decision,enclosingBlockLevel,blockLevel,decisionNumber,maxK,maxAlt,description) ::= <<
-// <fileName>:<description>
-int alt<decisionNumber>=<maxAlt>;
+<rem()> <fileName>:<description>
+<varDecl("int", {alt<decisionNumber>}, maxAlt)>
 <decls>
 <@predecision()>
 <decision>
 <@postdecision()>
-switch (alt<decisionNumber>) {
-	<alts:{a | <altSwitchCase(i,a)>}>
-}
->>
-
-ruleBlockSingleAlt(alts,decls,decision,enclosingBlockLevel,blockLevel,decisionNumber,description) ::= <<
-// <fileName>:<description>
-<decls>
-<@prealt()>
-<alts>
-<@postalt()>
->>
-
-/** A special case of a (...) subrule with a single alternative */
-blockSingleAlt(alts,decls,decision,enclosingBlockLevel,blockLevel,decisionNumber,description) ::= <<
-// <fileName>:<description>
-<decls>
-<@prealt()>
-<alts>
-<@postalt()>
+<switchStmt({alt<decisionNumber>}, alts:{a | <altSwitchCase(i,a)>})>
 >>
 
 /** A (..)+ block with 1 or more alternatives */
@@ -658,17 +575,6 @@ optionalBlock ::= block
 
 optionalBlockSingleAlt ::= block
 
-/** A case in a switch that jumps to an alternative given the alternative
- *  number.  A DFA predicts the alternative and then a simple switch
- *  does the jump to the code that actually matches that alternative.
- */
-altSwitchCase(altNum,alt) ::= <<
-case <altNum> :
-	<@prealt()>
-	<alt>
-	break;<\n>
->>
-
 /** An alternative is just a list of elements; at outermost level */
 alt(elements,altNum,description,autoAST,outerAlt,treeLevel,rew) ::= <<
 // <fileName>:<description>
@@ -679,11 +585,6 @@ alt(elements,altNum,description,autoAST,outerAlt,treeLevel,rew) ::= <<
 <@cleanup()>
 }
 >>
-
-/** What to emit when there is no rewrite.  For auto build
- *  mode, does nothing.
- */
-noRewrite(rewriteBlockLevel, treeLevel) ::= ""
 
 // E L E M E N T S
 
@@ -729,9 +630,9 @@ matchRange(<a>,<b>); <checkRuleBacktrackFailure()>
 matchSet(s,label,elementIndex,terminalOptions,postmatchCode="") ::= <<
 <if(label)>
 <if(LEXER)>
-<label>= input.LA(1);
+<label> = input.LA(1);
 <else>
-<label>=(<labelType>)input.LT(1);
+<label> = (<labelType>)input.LT(1);
 <endif>
 <endif>
 if ( <s> ) {
@@ -902,20 +803,11 @@ if ( !(<evalPredicate(pred,description)>) ) {
 
 // F i x e d  D F A  (if-then-else)
 
-dfaState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
-int LA<decisionNumber>_<stateNumber> = input.LA(<k>);
-<edges; separator="\nelse ">
-else {
-<if(eotPredictsAlt)>
-	alt<decisionNumber>=<eotPredictsAlt>;
-<else>
-	<ruleBacktrackFailure()>
-	<(nvaExceptionWrapperMap.(k))({NoViableAltException nvae =
-	new NoViableAltException("<description>", <decisionNumber>, <stateNumber>, input);
-<@noViableAltException()>
-throw nvae;})>
-<endif>
-}
+@dfaState.newNVAE() ::= <<
+<(nvaExceptionWrapperMap.(k))({
+NoViableAltException nvae = new NoViableAltException("<description>", <decisionNumber>, <stateNumber>, input);
+<@super.newNVAE()>
+})>
 >>
 
 nvaExceptionWrapperMap ::= [
@@ -941,56 +833,15 @@ try {
 wrapNvaExceptionForKN(exceptionCode) ::= <<
 int nvaeMark = input.mark();
 try {
-	for (int nvaeConsume = 0; nvaeConsume \< <k> - 1; nvaeConsume++)
+	for (int nvaeConsume = 0; nvaeConsume \< <k> - 1; nvaeConsume++) {
 		input.consume();
+    }
 	<exceptionCode>
 } finally {
 	input.rewind(nvaeMark);
 }
 >>
 
-/** Same as a normal DFA state except that we don't examine lookahead
- *  for the bypass alternative.  It delays error detection but this
- *  is faster, smaller, and more what people expect.  For (X)? people
- *  expect "if ( LA(1)==X ) match(X);" and that's it.
- */
-dfaOptionalBlockState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
-int LA<decisionNumber>_<stateNumber> = input.LA(<k>);
-<edges; separator="\nelse ">
->>
-
-/** A DFA state that is actually the loopback decision of a closure
- *  loop.  If end-of-token (EOT) predicts any of the targets then it
- *  should act like a default clause (i.e., no error can be generated).
- *  This is used only in the lexer so that for ('a')* on the end of a rule
- *  anything other than 'a' predicts exiting.
- */
-dfaLoopbackState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
-int LA<decisionNumber>_<stateNumber> = input.LA(<k>);
-<edges; separator="\nelse ">
-<if(eotPredictsAlt)>
-<if(!edges)>
-alt<decisionNumber>=<eotPredictsAlt>; <! if no edges, don't gen ELSE !>
-<else>
-else {
-	alt<decisionNumber>=<eotPredictsAlt>;
-}
-<endif>
-<endif>
->>
-
-/** An accept state indicates a unique alternative has been predicted */
-dfaAcceptState(alt) ::= "alt<decisionNumber>=<alt>;"
-
-/** A simple edge with an expression.  If the expression is satisfied,
- *  enter to the target state.  To handle gated productions, we may
- *  have to evaluate some predicates for this edge.
- */
-dfaEdge(labelExpr, targetState, predicates) ::= <<
-if ( (<labelExpr>)<if(predicates)> && (<predicates>)<endif> ) {
-	<targetState>
-}
->>
 
 // F i x e d  D F A  (switch case)
 
@@ -998,9 +849,7 @@ if ( (<labelExpr>)<if(predicates)> && (<predicates>)<endif> ) {
  *  decides if this is possible: CodeGenerator.canGenerateSwitch().
  */
 dfaStateSwitch(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
-switch ( input.LA(<k>) ) {
-<edges; separator="\n">
-default:
+<switchStmt({input.LA(<k>)}, edges, {
 <if(eotPredictsAlt)>
 	alt<decisionNumber>=<eotPredictsAlt>;
 <else>
@@ -1010,7 +859,7 @@ default:
 <@noViableAltException()>
 throw nvae;})>
 <endif>
-}
+})>
 >>
 
 dfaOptionalBlockStateSwitch(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
@@ -1198,23 +1047,6 @@ evalPredicateGroup(pred) ::= "(<pred>)"
 
 evalSynPredicate(pred,description) ::= "<pred>()"
 
-lookaheadTest(atom,k,atomAsInt) ::= "LA<decisionNumber>_<stateNumber>==<atom>"
-
-/** Sometimes a lookahead test cannot assume that LA(k) is in a temp variable
- *  somewhere.  Must ask for the lookahead directly.
- */
-isolatedLookaheadTest(atom,k,atomAsInt) ::= "input.LA(<k>)==<atom>"
-
-lookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= <%
-(LA<decisionNumber>_<stateNumber> >= <lower> && LA<decisionNumber>_<stateNumber> \<= <upper>)
-%>
-
-isolatedLookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= "(input.LA(<k>) >= <lower> && input.LA(<k>) \<= <upper>)"
-
-setTest(ranges) ::= <<
-(<ranges; separator=")||(">)
->>
-
 // A T T R I B U T E S
 
 globalAttributeScope(scope) ::= <<
@@ -1234,8 +1066,6 @@ protected static class <scope.name>_scope {
 protected Stack\<<scope.name>_scope\> <scope.name>_stack = new Stack\<<scope.name>_scope\>();
 <endif>
 >>
-
-returnStructName(r) ::= "<r.name>_return"
 
 returnType(ruleDescriptor) ::= <%
 <if(ruleDescriptor.hasMultipleReturnValues)>
@@ -1271,12 +1101,6 @@ initValue(typeName) ::= <<
 <javaTypeInitMap.(typeName)>
 >>
 
-/** Define a rule label including default value */
-ruleLabelDef(label) ::= <%
-<ruleLabelType(referencedRule=label.referencedRule)> <label.label.text> =
- <initValue(typeName=ruleLabelType(referencedRule=label.referencedRule))>;
-%>
-
 /** Define a return struct for a rule if the code needs to access its
  *  start/stop tokens, tree stuff, attributes, ...  Leave a hole for
  *  subgroups to stick in members.
@@ -1294,20 +1118,9 @@ returnScopeBaseType() ::= <%
 <if(TREE_PARSER)>Tree<else>Parser<endif>RuleReturnScope
 %>
 
-parameterScope(scope) ::= <<
-<scope.attributes:{it |<it.decl>}; separator=", ">
->>
-
-parametersCall(scope) ::= <<
-<scope.attributes:{it |<it.name>}; separator=", ">
->>
-
 parametersCast(scope,varName) ::= <<
 <scope.attributes:{it | (<if(javaPrimitiveTypeCastMap.(it.type))><javaPrimitiveTypeCastMap.(it.type)><else><it.type><endif>)<varName>[<i0>]}; separator=", ">
 >>
-
-parameterAttributeRef(attr) ::= "<attr.name>"
-parameterSetAttributeRef(attr,expr) ::= "<attr.name> =<expr>;"
 
 scopeAttributeRef(scope,attr,index,negIndex) ::= <%
 <if(negIndex)>
@@ -1323,30 +1136,18 @@ scopeAttributeRef(scope,attr,index,negIndex) ::= <%
 
 scopeSetAttributeRef(scope,attr,expr,index,negIndex) ::= <%
 <if(negIndex)>
-<scope>_stack.elementAt(<scope>_stack.size()-<negIndex>-1).<attr.name> =<expr>;
+<scope>_stack.elementAt(<scope>_stack.size()-<negIndex>-1).<attr.name> = <expr>;
 <else>
 <if(index)>
-<scope>_stack.elementAt(<index>).<attr.name> =<expr>;
+<scope>_stack.elementAt(<index>).<attr.name> = <expr>;
 <else>
-<scope>_stack.peek().<attr.name> =<expr>;
+<scope>_stack.peek().<attr.name> = <expr>;
 <endif>
 <endif>
 %>
-
-/** $x is either global scope or x is rule with dynamic scope; refers
- *  to stack itself not top of stack.  This is useful for predicates
- *  like {$function.size()>0 && $function::name.equals("foo")}?
- */
-isolatedDynamicScopeRef(scope) ::= "<scope>_stack"
 
 /** reference an attribute of rule; might only have single return value */
-ruleLabelRef(referencedRule,scope,attr) ::= <%
-<if(referencedRule.hasMultipleReturnValues)>
-(<scope>!=null?((<returnType(referencedRule)>)<scope>).<attr.name>:<initValue(attr.type)>)
-<else>
-<scope>
-<endif>
-%>
+ruleLabelRef(referencedRule,scope,attr) ::= "<if(referencedRule.hasMultipleReturnValues)><nullSafe(val=scope,attr=attr.name,nullval={<initValue(attr.type)>})><else><scope><endif>"
 
 returnAttributeRef(ruleDescriptor,attr) ::= <%
 <if(ruleDescriptor.hasMultipleReturnValues)>
@@ -1358,62 +1159,48 @@ retval.<attr.name>
 
 returnSetAttributeRef(ruleDescriptor,attr,expr) ::= <%
 <if(ruleDescriptor.hasMultipleReturnValues)>
-retval.<attr.name> =<expr>;
+retval.<attr.name> = <expr>;
 <else>
-<attr.name> =<expr>;
+<attr.name> = <expr>;
 <endif>
 %>
-
-/** How to translate $tokenLabel */
-tokenLabelRef(label) ::= "<label>"
-
-/** ids+=ID {$ids} or e+=expr {$e} */
-listLabelRef(label) ::= "list_<label>"
-
 
 // not sure the next are the right approach
 
-tokenLabelPropertyRef_text(scope,attr) ::= "(<scope>!=null?<scope>.getText():null)"
-tokenLabelPropertyRef_type(scope,attr) ::= "(<scope>!=null?<scope>.getType():0)"
-tokenLabelPropertyRef_line(scope,attr) ::= "(<scope>!=null?<scope>.getLine():0)"
-tokenLabelPropertyRef_pos(scope,attr) ::= "(<scope>!=null?<scope>.getCharPositionInLine():0)"
-tokenLabelPropertyRef_channel(scope,attr) ::= "(<scope>!=null?<scope>.getChannel():0)"
-tokenLabelPropertyRef_index(scope,attr) ::= "(<scope>!=null?<scope>.getTokenIndex():0)"
+tokenLabelPropertyRef_text(scope,attr) ::= <%<nullSafe(scope,"getText()")>%>
+tokenLabelPropertyRef_type(scope,attr) ::= <%<nullSafe(var=scope,attr="getType()",nullval="0")>%>
+tokenLabelPropertyRef_line(scope,attr) ::= <%<nullSafe(var=scope,attr="getLine()",nullval="0")>%>
+tokenLabelPropertyRef_pos(scope,attr) ::= <%<nullSafe(var=scope,attr="getCharPositionInLine()",nullval="0")>%>
+tokenLabelPropertyRef_channel(scope,attr) ::= <%<nullSafe(var=scope,attr="getChannel()",nullval="0")>%>
+tokenLabelPropertyRef_index(scope,attr) ::= <%<nullSafe(var=scope,attr="getTokenIndex()",nullval="0")>%>
 tokenLabelPropertyRef_tree(scope,attr) ::= "<scope>_tree"
-tokenLabelPropertyRef_int(scope,attr) ::= "(<scope>!=null?Integer.valueOf(<scope>.getText()):0)"
+tokenLabelPropertyRef_int(scope,attr) ::= <%<nullSafe(var=scope,expr={Integer.valueOf(<scope>.getText())},nullval="0")>%>
 
-ruleLabelPropertyRef_start(scope,attr) ::= "(<scope>!=null?((<labelType>)<scope>.start):null)"
-ruleLabelPropertyRef_stop(scope,attr) ::= "(<scope>!=null?((<labelType>)<scope>.stop):null)"
-ruleLabelPropertyRef_tree(scope,attr) ::= "(<scope>!=null?((<ASTLabelType>)<scope>.getTree()):null)"
+scopeAttrRef(scope,attr) ::= "<nullSafe(...)>"
+
+ruleLabelPropertyRef_start ::= scopeAttrRef
+ruleLabelPropertyRef_stop ::= scopeAttrRef
+ruleLabelPropertyRef_tree(scope,attr) ::= <%<nullSafe(scope,"getTree()")>%>
 ruleLabelPropertyRef_text(scope,attr) ::= <%
+<nullSafe(var=scope, expr={
 <if(TREE_PARSER)>
-(<scope>!=null?(input.getTokenStream().toString(
-  input.getTreeAdaptor().getTokenStartIndex(<scope>.start),
-  input.getTreeAdaptor().getTokenStopIndex(<scope>.start))):null)
+input.getTokenStream().toString(
+  input.getTreeAdaptor().getTokenStartIndex(<scope>.start), 
+  input.getTreeAdaptor().getTokenStopIndex(<scope>.start))
 <else>
-(<scope>!=null?input.toString(<scope>.start,<scope>.stop):null)
-<endif>
+input.toString(<scope>.start, <scope>.stop)
+<endif>})>
 %>
 
-ruleLabelPropertyRef_st(scope,attr) ::= "(<scope>!=null?((StringTemplate)<scope>.getTemplate()):null)"
+ruleLabelPropertyRef_st(scope,attr) ::= <%<nullSafe(var=scope,expr={(StringTemplate)<scope>.getTemplate()})>%>
 
-/** Isolated $RULE ref ok in lexer as it's a Token */
-lexerRuleLabel(label) ::= "<label>"
-
-lexerRuleLabelPropertyRef_type(scope,attr) ::=
-	"(<scope>!=null?<scope>.getType():0)"
-lexerRuleLabelPropertyRef_line(scope,attr) ::=
-	"(<scope>!=null?<scope>.getLine():0)"
-lexerRuleLabelPropertyRef_pos(scope,attr) ::=
-	"(<scope>!=null?<scope>.getCharPositionInLine():-1)"
-lexerRuleLabelPropertyRef_channel(scope,attr) ::=
-	"(<scope>!=null?<scope>.getChannel():0)"
-lexerRuleLabelPropertyRef_index(scope,attr) ::=
-	"(<scope>!=null?<scope>.getTokenIndex():0)"
-lexerRuleLabelPropertyRef_text(scope,attr) ::=
-	"(<scope>!=null?<scope>.getText():null)"
-lexerRuleLabelPropertyRef_int(scope,attr) ::=
-	"(<scope>!=null?Integer.valueOf(<scope>.getText()):0)"
+lexerRuleLabelPropertyRef_type(scope,attr) ::= <%<nullSafe(var=scope,attr="getType()",nullval="0")>%>
+lexerRuleLabelPropertyRef_line(scope,attr) ::= <%<nullSafe(var=scope,attr="getLine()",nullval="0")>%>
+lexerRuleLabelPropertyRef_pos(scope,attr) ::= <%<nullSafe(var=scope,attr="getCharPositionInLine()",nullval="-1")>%>
+lexerRuleLabelPropertyRef_channel(scope,attr) ::= <%<nullSafe(var=scope,attr="getChannel()",nullval="0")>%>
+lexerRuleLabelPropertyRef_index(scope,attr) ::= <%<nullSafe(var=scope,attr="getTokenIndex()",nullval="0")>%>
+lexerRuleLabelPropertyRef_text(scope,attr) ::= <%<nullSafe(scope,"getText()")>%>
+lexerRuleLabelPropertyRef_int(scope,attr) ::= <%<nullSafe(var=scope,expr={Integer.valueOf(<scope>.getText())},nullval="0")>%>
 
 // Somebody may ref $template or $tree or $stop within a rule:
 rulePropertyRef_start(scope,attr) ::= "((<labelType>)retval.start)"
@@ -1442,22 +1229,8 @@ lexerRulePropertyRef_int(scope,attr) ::= "Integer.valueOf(<scope>.getText())"
 
 // setting $st and $tree is allowed in local rule. everything else
 // is flagged as error
-ruleSetPropertyRef_tree(scope,attr,expr) ::= "retval.tree =<expr>;"
-ruleSetPropertyRef_st(scope,attr,expr) ::= "retval.st =<expr>;"
-
-/** How to execute an action (only when not backtracking) */
-execAction(action) ::= <%
-<if(backtracking)>
-if ( <actions.(actionScope).synpredgate> ) {
-  <action>
-}
-<else>
-<action>
-<endif>
-%>
-
-/** How to always execute an action even when backtracking */
-execForcedAction(action) ::= "<action>"
+ruleSetPropertyRef_tree(scope,attr,expr) ::= "retval.tree = <expr>;"
+ruleSetPropertyRef_st(scope,attr,expr) ::= "retval.st = <expr>;"
 
 // M I S C (properties, etc...)
 
@@ -1466,6 +1239,3 @@ public static final BitSet <name> = new BitSet(new long[]{<words64:{it |<it>L};s
 >>
 
 codeFileExtension() ::= ".java"
-
-true_value() ::= "true"
-false_value() ::= "false"

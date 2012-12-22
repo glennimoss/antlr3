@@ -86,7 +86,11 @@ public class PredicateLabel extends Label {
 
 	@Override
 	public String toString(Grammar g) {
+        String gated = "";
+        if (semanticContext.getGatedPredicateContext() != null) {
+            gated = "=>";
+        }
 		return "{" + semanticContext.genExpr(g.getCodeGenerator(), g.getCodeGenerator().getTemplates(),
-                null).render() + "}?";
+                null).render() + "}?" + gated;
 	}
 }

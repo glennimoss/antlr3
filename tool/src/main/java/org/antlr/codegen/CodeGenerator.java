@@ -678,7 +678,7 @@ public class CodeGenerator {
 			ST edgeST;
 			if ( edge.label.getAtom()==Label.EOT ) {
 				// this is the default clause; has to held until last
-				edgeST = templates.getInstanceOf("eotDFAEdge");
+				edgeST = templates.getInstanceOf("cyclicDFANextState");
 				stateST.remove("needErrorClause");
 				eotST = edgeST;
 			}
@@ -687,22 +687,19 @@ public class CodeGenerator {
 				ST exprST =
 					genLabelExpr(templates,edge,1);
 				edgeST.add("labelExpr", exprST);
-			}
-			edgeST.add("edgeNumber", Utils.integer(i + 1));
-			edgeST.add("targetStateNumber",
-					   Utils.integer(edge.target.stateNumber));
-			// stick in any gated predicates for any edge if not already a pred
-			if ( !edge.label.isSemanticPredicate() ) {
-				DFAState t = (DFAState)edge.target;
-				SemanticContext preds =	t.getGatedPredicatesInNFAConfigurations();
-				if ( preds!=null ) {
-					foundGatedPred = true;
-					ST predST = preds.genExpr(this,
-														  getTemplates(),
-														  t.dfa);
-					edgeST.add("predicates", predST.render());
+
+				// stick in any gated predicates for any edge if not already a pred
+				if ( !edge.label.isSemanticPredicate() ) {
+					DFAState t = (DFAState)edge.target;
+					SemanticContext preds =	t.getGatedPredicatesInNFAConfigurations();
+					if ( preds!=null ) {
+						foundGatedPred = true;
+						ST predST = preds.genExpr(this, getTemplates(), t.dfa);
+						edgeST.add("predicates", predST.render());
+					}
 				}
 			}
+			edgeST.add("targetStateNumber", Utils.integer(edge.target.stateNumber));
 			if ( edge.label.getAtom()!=Label.EOT ) {
 				stateST.add("edges", edgeST);
 			}
@@ -767,12 +764,10 @@ public class CodeGenerator {
 		String testSTName = "lookaheadTest";
 		String testRangeSTName = "lookaheadRangeTest";
 		String testSetSTName = "lookaheadSetTest";
-		String varSTName = "lookaheadVarName";
 		if ( !partOfDFA ) {
 			testSTName = "isolatedLookaheadTest";
 			testRangeSTName = "isolatedLookaheadRangeTest";
 			testSetSTName = "isolatedLookaheadSetTest";
-			varSTName = "isolatedLookaheadVarName";
 		}
 		ST setST = templates.getInstanceOf("setTest");
 		// If the SetTest template exists, separate the ranges:
@@ -809,9 +804,9 @@ public class CodeGenerator {
 				}
 			}
 			sST.add("k", Utils.integer(k));
-		if (sST.getAttribute("values") != null) {
-			setST.add("ranges", sST);
-		}
+			if (sST.getAttribute("values") != null) {
+				setST.add("ranges", sST);
+			}
 			return setST;
 		}
 		Iterator<Interval> iter = iset.getIntervals().iterator();

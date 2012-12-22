@@ -1,0 +1,55 @@
+testFileName() ::= "Test.java"
+
+print(msg) ::= "System.out.println(<msg>);"
+print_char(msg) ::= "System.out.println((char)<msg>);"
+
+execCmd(classpath, inputfile) ::= <<
+java -classpath <classpath> Test <inputfile>
+>>
+
+testFile(lexerName, parserName, debug, parserStartRuleName, runtimeDir) ::= <<
+import org.antlr.runtime.*;
+import org.antlr.runtime.tree.*;
+import org.antlr.runtime.debug.*;
+<if(debug)>
+
+class Profiler2 extends Profiler {
+    public void terminate() { ; }
+}
+<endif>
+
+public class Test {
+    public static void main(String[] args) throws Exception {
+        CharStream input = new ANTLRFileStream(args[0]);
+        <lexerName> lex = new <lexerName>(input);
+        CommonTokenStream tokens = new CommonTokenStream(lex);
+        <if(debug)>
+        Profiler2 profiler = new Profiler2();
+        <parserName> parser = new <parserName>(tokens,profiler);
+        profiler.setParser(parser);
+        <else>
+        <parserName> parser = new <parserName>(tokens);
+        <endif>
+        parser.<parserStartRuleName>();
+    }
+}
+>>
+
+lexerTestFile(lexerName) ::= <<
+import org.antlr.runtime.*;
+import org.antlr.runtime.tree.*;
+import org.antlr.runtime.debug.*;
+
+class Profiler2 extends Profiler {
+    public void terminate() { ; }
+}
+public class Test {
+    public static void main(String[] args) throws Exception {
+        CharStream input = new ANTLRFileStream(args[0]);
+        <lexerName> lex = new <lexerName>(input);
+        CommonTokenStream tokens = new CommonTokenStream(lex);
+        System.out.println(tokens);
+    }
+}
+>>
+

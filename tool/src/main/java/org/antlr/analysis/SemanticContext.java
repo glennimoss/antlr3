@@ -191,7 +191,7 @@ public abstract class SemanticContext {
 
         @Override
         public int hashCode() {
-            if (this.constantValue != INVALID_PRED_VALUE){
+            if (this.constantValue != INVALID_PRED_VALUE) {
                 return this.constantValue;
             }
 

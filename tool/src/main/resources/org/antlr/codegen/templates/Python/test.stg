@@ -1,0 +1,27 @@
+testFileName() ::= "Test.py"
+
+print(msg) ::= "print <msg>"
+print_char(msg) ::= "print chr(<msg>)"
+
+execCmd(classpath, inputfile) ::= <<
+python Test.py <inputfile>
+>>
+
+testFile(lexerName, parserName, debug, parserStartRuleName, runtimeDir) ::= <<
+import sys, os.path
+sys.path.append("<runtimeDir>")
+sys.path.append(os.path.dirname(__file__))
+
+
+from <parserName> import main
+
+main(("X <if(debug)>--profile <endif>--rule %s %s" % ("<parserStartRuleName>", sys.argv[1])).split())
+>>
+
+lexerTestFile(lexerName) ::= <<
+import sys
+from <lexerName> import main
+
+main(sys.argv)
+>>
+

@@ -1,0 +1,377 @@
+// L A N G U A G E   E L E M E N T S
+
+true_value() ::= "true"
+false_value() ::= "false"
+null_value() ::= "null"
+
+memberPrefix() ::= ""
+statementTerminator() ::= ";"
+
+rem() ::= "//"
+
+equalityTest(a,b) ::= "<a>.equals(<b>)"
+
+identityTest(a,b) ::= "<a><@operator()><b>"
+@identityTest.operator() ::= " == "
+
+notIdentityTest(a,b) ::= "<a><@operator()><b>"
+@notIdentityTest.operator() ::= " != "
+
+rangeTest(v, lower, upper) ::= "<andPredicates([{<v> >= <lower>}, {<v> \<= <upper>}])>"
+
+nullSafe(var,attr,expr="",nullval={<null_value()>}) ::= "<ternary(notIdentityTest(var, null_value()), {<if(attr)><var>.<attr><else><expr><endif>}, nullval)>"
+
+evalPredicate(pred,description="") ::= "<pred>"
+
+evalPredicateGroup(pred) ::= "(<pred>)"
+
+andPredicates(operands) ::= <%<naryOperator(operands, @operator())>%>
+@andPredicates.operator() ::= "&&"
+
+orPredicates(operands) ::= <%<naryOperator(operands, @operator())>%>
+@orPredicates.operator() ::= "||"
+
+naryOperator(operands, operator) ::= <%
+<if(rest(operands))>
+<operands:evalPredicateGroup(); separator=operator>
+<else>
+<evalPredicate(first(operands))>
+<endif>
+%>
+
+notPredicate(pred) ::= "<@operator()><evalPredicateGroup(pred)>"
+@notPredicate.operator() ::= "!"
+
+increment(var) ::= "<var>++<statementTerminator()>"
+decrement(var) ::= "<var>--<statementTerminator()>"
+
+ternary(test,t,f) ::= "((<test>)?(<t>):(<f>))"
+
+ifStmt(expr, body) ::= <<
+if (<expr>) {
+    <body>
+}
+>>
+
+elseStmt(body) ::= <<
+<\ >else {
+    <body>
+}
+>>
+
+ifElseChain(ifs, elseBlock=false) ::= <%
+<ifs; separator=@sep()>
+<if(elseBlock)>
+<elseStmt(elseBlock)>
+<endif>
+%>
+@ifElseChain.sep() ::= " else "
+
+switchStmt(switchExpr, cases, defaultBlock=false) ::= <<
+switch (<switchExpr>) {
+    <cases; separator="\n">
+    <if(defaultBlock)>
+    default:
+        <defaultBlock>
+    <endif>
+}
+>>
+
+switchCase(cases, body) ::= <<
+<cases:{it |case <it>:}; separator="\n">
+    {
+        <body>
+    }
+    break;
+>>
+
+declare(type,name) ::= "<@declareType><type> <@end><name>"
+varDecl(type,name,val=false) ::= "<declare(type,name)> = <if(val)><val><else><initValue(type)><endif><statementTerminator()>"
+
+paramDecl(type,name) ::= "<@declareType><type> <@end><name>"
+
+new() ::= "new "
+
+try(body, catches="", finally=false) ::= <<
+try {
+    <body>
+}<catches><if(finally)> finally {
+   EUOEO<finally>OEUOEU
+}
+<endif>
+>>
+
+catch(decl,action) ::= <<
+<\ >catch (<decl>) {
+    <action>
+}
+>>
+
+throw(expr) ::= "throw <expr><statementTerminator()>"
+
+memberFunction(name, args="", body="", prefix="void", extra=false) ::= <<
+<if(prefix)><prefix> <endif><name>(<args; separator=", ">) <if(extra)><extra> <endif>{
+    <body>
+}
+>>
+
+// C O M M O N   T E M P L A T E S
+
+ruleReturnValue() ::= <%
+<if(!ruleDescriptor.isSynPred && ruleDescriptor.hasReturnValue)>
+<if(ruleDescriptor.hasSingleReturnValue)>
+<ruleDescriptor.singleValueReturnName>
+<else>
+retval
+<endif>
+<endif>
+%>
+
+/** What to emit when there is no rewrite.  For auto build
+ *  mode, does nothing.
+ */
+noRewrite(rewriteBlockLevel, treeLevel) ::= ""
+
+LA(k) ::= "<memberPrefix()>input.LA(<k>)"
+
+evalSynPredicate(pred,description) ::= "<memberPrefix()><pred>()"
+
+lookaheadVarname() ::= "LA<decisionNumber>_<stateNumber>"
+
+lookaheadVarDecl(k) ::= <%<varDecl("int", lookaheadVarname(), LA(k))>%>
+
+lookaheadTest(atom,k,atomAsInt) ::= "<lookaheadVarname()> == <atom>"
+
+/** Sometimes a lookahead test cannot assume that LA(k) is in a temp variable
+ *  somewhere.  Must ask for the lookahead directly.
+ */
+isolatedLookaheadTest(atom,k,atomAsInt) ::= "<LA(k)> == <atom>"
+
+lookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::=
+  "<rangeTest(lookaheadVarname(), lower, upper)>"
+
+isolatedLookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::=
+  "<rangeTest(LA(k), lower, upper)>"
+
+setTest(ranges) ::= "<orPredicates(ranges)>"
+
+returnStructName(r) ::= "<r.name>_return"
+
+parameterScope(scope) ::= <<
+<scope.attributes:{it | <it.decl>}; separator=", ">
+>>
+
+parametersCall(scope) ::= <<
+<scope.attributes:{it | <it.name>}; separator=", ">
+>>
+
+parameterAttributeRef(attr) ::= "<attr.name>"
+parameterSetAttributeRef(attr,expr) ::= "<attr.name> = <expr>"
+
+/** $x is either global scope or x is rule with dynamic scope; refers
+ *  to stack itself not top of stack.  This is useful for predicates
+ *  like {$function.size()>0 && $function::name.equals("foo")}?
+ */
+isolatedDynamicScopeRef(scope) ::= "<memberPrefix()><scope>_stack"
+
+
+/** Isolated $RULE ref ok in lexer as it's a Token */
+lexerRuleLabel(label) ::= "<label>"
+
+/** How to translate $tokenLabel */
+tokenLabelRef(label) ::= "<label>"
+
+/** ids+=ID {$ids} or e+=expr {$e} */
+listLabelRef(label) ::= "list_<label>"
+
+
+
+
+
+/** How to execute an action (only when not backtracking) */
+execAction(action) ::= <%
+<if(backtracking)>
+<ifStmt({<actions.(actionScope).synpredgate>}, action)>
+<else>
+<action>
+<endif>
+%>
+
+/** How to always execute an action even when backtracking */
+execForcedAction(action) ::= "<action>"
+
+stateVar() ::= "state"
+
+actionGate() ::= "<stateVar()>.backtracking==0"
+
+filteringActionGate() ::= "<stateVar()>.backtracking==1"
+
+synpred(name) ::= <<
+<memberFunction(name=name, body={
+<increment({<stateVar()>.backtracking})>
+<@start()>
+<varDecl("int", "start", {<memberPrefix()>input.mark()})>
+<! Expect the overridden region to make a variable "success" available !>
+<@trapFailedBacktrack>
+<memberPrefix()><name>_fragment()<statementTerminator()>
+<@end>
+
+<memberPrefix()>input.rewind(start)<statementTerminator()>
+<@stop()>
+<decrement({<stateVar()>.backtracking})>
+<stateVar()>.failed = <false_value()><statementTerminator()>
+return success<statementTerminator()>
+}, prefix="public final boolean")>
+>>
+
+lexerSynpred ::= synpred
+
+
+/** A simpler version of a rule template that is specific to the imaginary
+ *  rules created for syntactic predicates.  As they never have return values
+ *  nor parameters etc..., just give simplest possible method.  Don't do
+ *  any of the normal memoization stuff in here either; it's a waste.
+ *  As predicates cannot be inlined into the invoking rule, they need to
+ *  be in a rule by themselves.
+ */
+synpredRule(ruleName, ruleDescriptor, block, description, nakedBlock) ::=
+<<
+<rem()> $ANTLR start "<ruleName>"
+<memberFunction({<ruleName>_fragment}, ruleDescriptor.parameterScope:parameterScope(), { 
+<ruleLabelDefs()>
+<if(trace)>
+<memberPrefix()>traceIn("<ruleName>_fragment", <ruleDescriptor.index>)<statementTerminator()>
+<try(body=block, finally={
+<memberPrefix()>traceOut("<ruleName>_fragment", <ruleDescriptor.index>)<statementTerminator()>})>
+<else>
+<block>
+<endif>}, {<@accessors>public final void<@end>}, 
+{<@throws>throws <ruleDescriptor.throwsSpec:{x|<x>}; separator=", "><@end>})>
+<rem()> $ANTLR end "<ruleName>"
+>>
+
+
+ruleLabelDefs() ::= <<
+<[ruleDescriptor.tokenLabels,ruleDescriptor.tokenListLabels,
+  ruleDescriptor.wildcardTreeLabels,ruleDescriptor.wildcardTreeListLabels]
+    :{it | <varDecl(labelType, it.label.text)>}; separator="\n" >
+<[ruleDescriptor.tokenListLabels,ruleDescriptor.ruleListLabels,ruleDescriptor.wildcardTreeListLabels]
+    :{it | <varDecl("List<Object>", {list_<it.label.text>})>}; separator="\n">
+<ruleDescriptor.ruleLabels:{it | <varDecl(ruleLabelType(it.referencedRule), it.label.text)>}; separator="\n">
+<ruleDescriptor.ruleListLabels:{it | <varDecl("RuleReturnScope", it.label.text)>}; separator="\n">
+>>
+
+
+// F i x e d  D F A  (if-then-else)
+
+
+dfaState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
+<lookaheadVarDecl(k)>
+<ifElseChain(edges, {
+<if(eotPredictsAlt)>
+<dfaAcceptState(eotPredictsAlt)>
+<else>
+<ruleBacktrackFailure()>
+<@newNVAE>
+<@noViableAltException()>
+<throw("nvae")>
+<@end>
+<endif>
+})>
+>>
+
+
+/** An accept state indicates a unique alternative has been predicted */
+dfaAcceptState(alt) ::= "alt<decisionNumber> = <alt><statementTerminator()>"
+
+/** A simple edge with an expression.  If the expression is satisfied,
+ *  enter to the target state.  To handle gated productions, we may
+ *  have to evaluate some predicates for this edge.
+ */
+dfaEdge(labelExpr, targetState, predicates) ::= <<
+<ifExprAndPreds(labelExpr, predicates, targetState)>
+>>
+
+ifExprAndPreds(labelExpr, predicates, body) ::= <%
+<ifStmt({<if(predicates)><andPredicates([labelExpr, predicates])><else><labelExpr><endif>}, body)>
+%>
+
+/** Same as a normal DFA state except that we don't examine lookahead
+ *  for the bypass alternative.  It delays error detection but this
+ *  is faster, smaller, and more what people expect.  For (X)? people
+ *  expect "if ( LA(1)==X ) match(X);" and that's it.
+ */
+dfaOptionalBlockState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
+<lookaheadVarDecl(k)>
+<ifElseChain(edges)>
+>>
+
+/** A DFA state that is actually the loopback decision of a closure
+ *  loop.  If end-of-token (EOT) predicts any of the targets then it
+ *  should act like a default clause (i.e., no error can be generated).
+ *  This is used only in the lexer so that for ('a')* on the end of a rule
+ *  anything other than 'a' predicts exiting.
+ */
+dfaLoopbackState(k,edges,eotPredictsAlt,description,stateNumber,semPredState) ::= <<
+<lookaheadVarDecl(k)>
+<if(edges)>
+<if(eotPredictsAlt)>
+<ifElseChain(edges, dfaAcceptState(eotPredictsAlt))>
+<else>
+<ifElseChain(edges)>
+<endif>
+<elseif(eotPredictsAlt)>
+<dfaAcceptState(eotPredictsAlt)>
+<endif>
+>>
+
+
+
+
+/** A special case of a (...) subrule with a single alternative */
+blockSingleAlt(alts,decls,decision,enclosingBlockLevel,blockLevel,decisionNumber,description) ::= <<
+<rem()> <fileName>:<description>
+<decls>
+<@prealt()>
+<alts>
+<@postalt()>
+>>
+
+ruleBlockSingleAlt ::= blockSingleAlt
+
+/** A case in a switch that jumps to an alternative given the alternative
+ *  number.  A DFA predicts the alternative and then a simple switch
+ *  does the jump to the code that actually matches that alternative.
+ */
+altSwitchCase(altNum,alt) ::= <<
+<switchCase(altNum, {
+<@prealt()>
+<alt>
+})>
+>>
+
+
+// C y c l i c  D F A
+
+/** The code to initiate execution of a cyclic DFA; this is used
+ *  in the rule to predict an alt just like the fixed DFA case.
+ *  The <name> attribute is inherited via the parser, lexer, ...
+ */
+dfaDecision(decisionNumber,description,parameters) ::= <<
+alt<decisionNumber> = <memberPrefix()>dfa<decisionNumber>.predict(<memberPrefix()>input<if(parameters)>, <parameters:parametersCall()><endif>)<statementTerminator()>
+>>
+
+/** Just like a fixed DFA edge, test the lookahead and indicate what
+ *  state to jump to next if successful.
+ */
+cyclicDFAEdge(labelExpr, targetStateNumber, predicates) ::= <<
+<ifExprAndPreds(labelExpr, predicates, cyclicDFANextState(targetStateNumber))>
+>>
+
+/** An edge pointing at end-of-token; essentially matches any char;
+ *  always jump to the target.
+ */
+cyclicDFANextState(targetStateNumber) ::= <<
+s = <targetStateNumber><statementTerminator()>
+>>
+

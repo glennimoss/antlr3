@@ -335,7 +335,8 @@ TOKEN_SCOPE_ATTR
 		}
 		ST st = template("tokenLabelPropertyRef_"+$y.text);
 		st.add("scope", label);
-		st.add("attr", AttributeScope.tokenScope.getAttribute($y.text));
+		//st.add("attr", AttributeScope.tokenScope.getAttribute($y.text));
+		st.add("attr", $y.text);
 		}
 	;
 

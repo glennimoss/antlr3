@@ -932,12 +932,14 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
         runTool(buf.toString());
     }
 
-    /*@Test*/ public void testMyGrammar () throws Exception {
+    @Test public void testMyGrammar () throws Exception {
+        //String grammarFile = "/home/gim/git/precog/precog/parser/sql.g";
+        String grammarFile = "/tmp/antlr-org.antlr.test.TestCodeGeneration-1356048806490/T.g";
         Tool antlr = new Tool();
-        antlr.addGrammarFile("/home/gim/git/precog/precog/parser/sql.g");
+        antlr.addGrammarFile(grammarFile);
 
-        Grammar g = antlr.getRootGrammar("/home/gim/git/precog/precog/parser/sql.g");
-        //runTool(g);
+        Grammar g = antlr.getRootGrammar(grammarFile);
+        runTool(g);
     }
 
     protected void runTool (String txt) throws Exception {
@@ -954,19 +956,18 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
     }
 
     protected void runTool (Grammar g) throws Exception {
-        /*
+        DecisionProbe.verbose=true; // make sure we get all error info
+        ErrorQueue equeue = new ErrorQueue();
+        //ErrorManager.setErrorListener(equeue);
+        //CodeGenerator generator = new CodeGenerator(newTool(), g, "Python3");
+        CodeGenerator generator = new CodeGenerator(newTool(), g, "Java");
+        g.setCodeGenerator(generator);
+
         g.composite.assignTokenTypes();
         g.addRulesForSyntacticPredicates();
         g.composite.defineGrammarSymbols();
         g.composite.createNFAs();
         g.createLookaheadDFAs();
-        */
-
-        DecisionProbe.verbose=true; // make sure we get all error info
-        ErrorQueue equeue = new ErrorQueue();
-        //ErrorManager.setErrorListener(equeue);
-        CodeGenerator generator = new CodeGenerator(newTool(), g, "Python3");
-        g.setCodeGenerator(generator);
 
         /*
         System.out.println(g.getNumberOfDecisions());
@@ -986,6 +987,7 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
         }
         */
 
+        /*
         ST out = generator.genRecognizer();
         if (ErrorManager.getNumErrors() == 0) {
           for (Grammar.Decision d : g.getDecisions()) {
@@ -1001,6 +1003,7 @@ public class TestHoistedPredicates extends SemanticPredicateBaseTest {
           }
           System.out.println(out.render());
         }
+        */
 
         DOTGenerator dg = new DOTGenerator(g);
         dg.writeDOTFilesForAllRuleNFAs();

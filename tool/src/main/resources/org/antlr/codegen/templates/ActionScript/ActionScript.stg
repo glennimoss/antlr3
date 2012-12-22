@@ -948,7 +948,7 @@ dfaEdgeSwitch(labels, targetState) ::= <<
  *  in the rule to predict an alt just like the fixed DFA case.
  *  The <name> attribute is inherited via the parser, lexer, ...
  */
-dfaDecision(decisionNumber,description) ::= <<
+dfaDecision(decisionNumber,description,parameters) ::= <<
 alt<decisionNumber> = dfa<decisionNumber>.predict(input);
 >>
 
@@ -1049,13 +1049,17 @@ s = <targetStateNumber>;<\n>
 
 // D F A  E X P R E S S I O N S
 
-andPredicates(left,right) ::= "(<left>&&<right>)"
+andPredicates(operands) ::= <%<naryOperator(operands, "&&")>%>
 
-orPredicates(operands) ::= "(<first(operands)><rest(operands):{o | ||<o>}>)"
+orPredicates(operands) ::= <%<naryOperator(operands, "||")>%>
 
-notPredicate(pred) ::= "!(<evalPredicate(pred,{})>)"
+naryOperator(operands, operator) ::= "(first<operands>)<rest(operands):{o |<operator>(<o>)}>"
 
-evalPredicate(pred,description) ::= "(<pred>)"
+notPredicate(pred) ::= "!(<pred>)"
+
+evalPredicate(pred,description) ::= "<pred>"
+
+evalPredicateGroup(pred) ::= "(<pred>)"
 
 evalSynPredicate(pred,description) ::= "<pred>()"
 
@@ -1072,9 +1076,7 @@ lookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= <%
 
 isolatedLookaheadRangeTest(lower,upper,k,rangeNumber,lowerAsInt,upperAsInt) ::= "(input.LA(<k>) >= <lowerAsInt> && input.LA(<k>) \<= <upperAsInt>)"
 
-setTest(ranges) ::= <<
-<ranges; separator="||">
->>
+setTest(ranges) ::= <%<orPredicates(ranges)>%>
 
 // A T T R I B U T E S
 

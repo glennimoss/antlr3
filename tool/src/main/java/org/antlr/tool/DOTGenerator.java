@@ -85,7 +85,7 @@ public class DOTGenerator {
             ST sg = this.getDOT(dfa.startState, "sub", "d" + dfa.decisionNumber);
             sg.add("graphName", "cluster_d" + dfa.decisionNumber);
             NFAState s = dfa.getNFADecisionStartState();
-            sg.add("graphLabel", s + " -> " + s.getDescription());
+            sg.add("graphLabel", escape(s + " -> " + s.getDescription()));
             graph.add("subgraphs", sg);
         }
         return graph.render();
@@ -266,7 +266,7 @@ public class DOTGenerator {
                     label.append(']');
                 }
                 label.append('>');
-                edgeST.add("label", label.toString());
+                edgeST.add("label", escape(label.toString()));
                 edgeST.add("src", getStateLabel(s));
                 edgeST.add("target", getStateLabel(rr.followState));
                 edgeST.add("arrowhead", arrowhead);
@@ -314,10 +314,6 @@ public class DOTGenerator {
      */
     protected String getEdgeLabel(Transition edge) {
         String label = edge.label.toString(grammar);
-        label = Utils.replace(label,"\\", "\\\\");
-        label = Utils.replace(label,"\"", "\\\"");
-        label = Utils.replace(label,"\n", "\\\\n");
-        label = Utils.replace(label,"\r", "");
         if ( label.equals(Label.EPSILON_STR) ) {
             label = "e";
         }
@@ -330,12 +326,12 @@ public class DOTGenerator {
                 String predsStr;
                 predsStr = "&&{"+
                     preds.genExpr(grammar.generator,
-                                  grammar.generator.getTemplates(), null).toString()
+                                  grammar.generator.getTemplates(), null).render()
                     +"}?";
                 label += predsStr;
             }
         }
-        return label;
+        return escape(label);
     }
 
     protected String getStateLabel(State s) {
@@ -412,7 +408,7 @@ public class DOTGenerator {
             stateLabel = stateLabel+
                     "=>"+((DFAState)s).getUniquelyPredictedAlt();
         }
-        return stateLabel;
+        return escape(stateLabel);
     }
 
     public String getArrowheadType() {
@@ -429,5 +425,14 @@ public class DOTGenerator {
 
     public void setRankdir(String rankdir) {
         this.rankdir = rankdir;
+    }
+
+    protected String escape(String str) {
+        str = Utils.replace(str,"\\", "\\\\");
+        str = Utils.replace(str,"\"", "\\\"");
+        str = Utils.replace(str,"\n", "\\\\n");
+        str = Utils.replace(str,"\r", "");
+
+        return str;
     }
 }
